@@ -9,13 +9,14 @@
     "prisma": "prisma",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
-    "studio": "prisma studio"
+    "studio": "prisma studio",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@prisma/client": "^6.1.0"
+    "@prisma/client": "^6.19.2"
   },
   "devDependencies": {
-    "prisma": "^6.1.0",
+    "prisma": "^6.19.2",
     "typescript": "^5.7.2"
   }
 }
