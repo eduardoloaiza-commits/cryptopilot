@@ -3,14 +3,18 @@
   "globalDependencies": ["**/.env.*local", ".env"],
   "globalEnv": [
     "ANTHROPIC_API_KEY",
-    "BINANCE_API_KEY",
-    "BINANCE_SECRET",
-    "BINANCE_BASE_URL",
+    "BINANCE_*",
     "MODE",
-    "DATABASE_URL",
-    "DIRECT_URL",
+    "POSTGRES_*",
+    "PG*",
+    "DATABASE_URL*",
+    "NEON_*",
     "CLERK_SECRET_KEY",
-    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    "CYCLE_INTERVAL_MS",
+    "DAILY_REPORT_*",
+    "LOG_LEVEL",
+    "NODE_ENV"
   ],
   "tasks": {
     "build": {
