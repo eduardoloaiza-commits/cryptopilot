@@ -20,6 +20,7 @@
     "@cryptopilot/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "decimal.js": "^10.4.3",
+    "technicalindicators": "^3.1.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

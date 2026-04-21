@@ -1,6 +1,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getBinanceClient } from "../lib/binance-client.js";
 import { assertWhitelisted } from "../lib/whitelist.js";
+import { analyzeVolatility, computeIndicators, parseKlines } from "../lib/indicators.js";
 
 export const marketTools: Tool[] = [
   {
@@ -65,12 +66,17 @@ export async function handleMarketTool(name: string, args: Record<string, unknow
       return { content: [{ type: "text" as const, text: JSON.stringify(data) }] };
     }
     case "analyze_volatility": {
-      // TODO: implementar ATR/stddev sobre klines 1d limit=30
-      return { content: [{ type: "text" as const, text: JSON.stringify({ stub: true, symbol }) }] };
+      const raw = await client.klineCandlestickData(symbol, "1d" as never, { limit: 30 });
+      const klines = parseKlines(raw);
+      const result = analyzeVolatility(symbol, klines);
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
     }
     case "compute_indicators": {
-      // TODO: RSI, EMA, BB, ATR — usar technicalindicators o implementación propia
-      return { content: [{ type: "text" as const, text: JSON.stringify({ stub: true, symbol }) }] };
+      const interval = String(args.interval);
+      const raw = await client.klineCandlestickData(symbol, interval as never, { limit: 100 });
+      const klines = parseKlines(raw);
+      const result = computeIndicators(symbol, interval, klines);
+      return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
     }
     default:
       throw new Error(`Unknown market tool: ${name}`);
