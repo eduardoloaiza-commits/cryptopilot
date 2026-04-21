@@ -1,0 +1,26 @@
+{
+  "name": "cryptopilot",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Trading autónomo de cripto con IA via MCP (Claude Agent SDK + Binance)",
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @cryptopilot/db prisma generate",
+    "db:migrate": "pnpm --filter @cryptopilot/db prisma migrate dev",
+    "worker:dev": "pnpm --filter @cryptopilot/worker dev",
+    "web:dev": "pnpm --filter @cryptopilot/web dev"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.18.0",
+    "pnpm": ">=9.0.0"
+  }
+}

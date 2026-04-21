@@ -1,0 +1,31 @@
+{
+  "name": "@cryptopilot/mcp-binance",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "cryptopilot-mcp-binance": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@binance/connector-typescript": "^0.4.0",
+    "@cryptopilot/db": "workspace:*",
+    "@cryptopilot/shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "decimal.js": "^10.4.3",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

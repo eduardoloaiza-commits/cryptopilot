@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Mode {
+  PAPER
+  TESTNET
+  LIVE
+}
+
+enum Side {
+  BUY
+  SELL
+}
+
+enum TradeStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum MovementKind {
+  DEPOSIT
+  WITHDRAW
+  TRADE_PNL
+  FEE
+  ADJUSTMENT
+}
+
+enum AgentRole {
+  ORCHESTRATOR
+  ANALYST
+  TRADER
+  RISK_MANAGER
+  ACCOUNTANT
+  RESEARCHER
+}
+
+enum AgentPhase {
+  SCAN
+  DECIDE
+  EXECUTE
+  REPORT
+  SWEEP
+}
+
+model Portfolio {
+  id             String       @id @default(cuid())
+  mode           Mode
+  initialCapital Decimal      @db.Decimal(20, 8)
+  currentEquity  Decimal      @db.Decimal(20, 8)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  movements      Movement[]
+  trades         Trade[]
+  guardrails     Guardrails?
+  dailyReports   DailyReport[]
+  agentLogs      AgentLog[]
+}
+
+model Trade {
+  id            String      @id @default(cuid())
+  portfolioId   String
+  portfolio     Portfolio   @relation(fields: [portfolioId], references: [id])
+  symbol        String
+  side          Side
+  type          String
+  entryPrice    Decimal     @db.Decimal(20, 8)
+  exitPrice     Decimal?    @db.Decimal(20, 8)
+  qty           Decimal     @db.Decimal(20, 8)
+  stopLoss      Decimal     @db.Decimal(20, 8)
+  takeProfit    Decimal?    @db.Decimal(20, 8)
+  status        TradeStatus
+  pnlUsdt       Decimal?    @db.Decimal(20, 8)
+  feesUsdt      Decimal?    @db.Decimal(20, 8)
+  reasoningAi   String?     @db.Text
+  sourceSignal  String?     @db.Text
+  openedAt      DateTime
+  closedAt      DateTime?
+  binanceOrderId String?
+  movements     Movement[]
+
+  @@index([portfolioId, status])
+  @@index([portfolioId, openedAt])
+}
+
+model Movement {
+  id          String       @id @default(cuid())
+  portfolioId String
+  portfolio   Portfolio    @relation(fields: [portfolioId], references: [id])
+  tradeId     String?
+  trade       Trade?       @relation(fields: [tradeId], references: [id])
+  kind        MovementKind
+  amountUsdt  Decimal      @db.Decimal(20, 8)
+  feeAsset    String?
+  note        String?      @db.Text
+  ts          DateTime     @default(now())
+
+  @@index([portfolioId, ts])
+  @@index([kind])
+}
+
+model DailyReport {
+  id            String    @id @default(cuid())
+  portfolioId   String
+  portfolio     Portfolio @relation(fields: [portfolioId], references: [id])
+  date          DateTime  @db.Date
+  startEquity   Decimal   @db.Decimal(20, 8)
+  endEquity     Decimal   @db.Decimal(20, 8)
+  pnlUsdt       Decimal   @db.Decimal(20, 8)
+  pnlPct        Decimal   @db.Decimal(10, 6)
+  tradesCount   Int
+  winrate       Decimal   @db.Decimal(5, 4)
+  maxDrawdown   Decimal   @db.Decimal(10, 6)
+  summaryMd     String    @db.Text
+  createdAt     DateTime  @default(now())
+
+  @@unique([portfolioId, date])
+}
+
+model Guardrails {
+  id                    String    @id @default(cuid())
+  portfolioId           String    @unique
+  portfolio             Portfolio @relation(fields: [portfolioId], references: [id])
+  maxPerTradePct        Decimal   @db.Decimal(5, 4)
+  stopLossPct           Decimal   @db.Decimal(5, 4)
+  takeProfitPct         Decimal?  @db.Decimal(5, 4)
+  dailyLossLimitPct     Decimal   @db.Decimal(5, 4)
+  maxOpenPositions      Int       @default(3)
+  killSwitchTriggered   Boolean   @default(false)
+  killSwitchReason      String?
+  proposedByAi          Boolean   @default(false)
+  approvedAt            DateTime?
+  updatedAt             DateTime  @updatedAt
+}
+
+model AgentLog {
+  id          String     @id @default(cuid())
+  portfolioId String?
+  portfolio   Portfolio? @relation(fields: [portfolioId], references: [id])
+  ts          DateTime   @default(now())
+  role        AgentRole
+  phase       AgentPhase
+  toolName    String?
+  input       Json?
+  output      Json?
+  reasoningMd String?    @db.Text
+  level       String     @default("info")
+
+  @@index([portfolioId, ts])
+  @@index([role, ts])
+}

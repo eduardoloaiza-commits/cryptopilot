@@ -1,0 +1,26 @@
+node_modules
+.pnpm-store
+.turbo
+dist
+.next
+out
+build
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+*.log
+.DS_Store
+coverage
+.vercel
+.vscode
+.idea
+
+# Personal Claude settings (local-only). Project-owned agent/skill definitions
+# live under apps/*/\.claude/ and MUST be committed.
+.claude/settings.local.json
+.claude/commands/
+
+packages/db/migrations/dev_*
