@@ -24,3 +24,4 @@ coverage
 .claude/commands/
 
 packages/db/migrations/dev_*
+.env*.local
