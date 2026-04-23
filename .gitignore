@@ -10,6 +10,8 @@ build
 .env.local
 .env.*.local
 !.env.example
+secrets.env
+**/secrets.env
 
 *.log
 .DS_Store
@@ -25,3 +27,4 @@ coverage
 
 packages/db/migrations/dev_*
 .env*.local
+*.tsbuildinfo

@@ -2,6 +2,7 @@ import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getBinanceClient, getMode } from "../lib/binance-client.js";
 import { assertWhitelisted } from "../lib/whitelist.js";
 import { validateOrderAgainstGuardrails } from "./guardrails.js";
+import { simulatePaperFill } from "../lib/paper-engine.js";
 
 export const tradingTools: Tool[] = [
   {
@@ -18,6 +19,8 @@ export const tradingTools: Tool[] = [
         limitPrice: { type: "number" },
         stopLoss: { type: "number" },
         takeProfit: { type: "number" },
+        rationale: { type: "string", description: "Breve razón (se guarda en Trade.reasoningAi)" },
+        sourceSignalId: { type: "string", description: "ID de la señal que originó la orden" },
       },
       required: ["symbol", "side", "type", "qty", "stopLoss"],
     },
@@ -81,15 +84,28 @@ async function placeOrder(args: Record<string, unknown>) {
 
   const mode = getMode();
   if (mode === "PAPER") {
-    // TODO: simular fill usando ticker actual + slippage, persistir Trade en DB.
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify({ mode, stub: true, ...proposal, orderId: `paper_${Date.now()}` }),
-        },
-      ],
-    };
+    try {
+      const fill = await simulatePaperFill({
+        symbol: proposal.symbol,
+        side: proposal.side,
+        type: proposal.type,
+        qty: proposal.qty,
+        limitPrice: proposal.limitPrice,
+        stopLoss: proposal.stopLoss,
+        takeProfit: proposal.takeProfit,
+        reasoningAi: typeof args.rationale === "string" ? args.rationale : undefined,
+        sourceSignal:
+          typeof args.sourceSignalId === "string" ? args.sourceSignalId : undefined,
+      });
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ mode, ...fill }) }],
+      };
+    } catch (e) {
+      return {
+        isError: true,
+        content: [{ type: "text" as const, text: `paper fill failed: ${(e as Error).message}` }],
+      };
+    }
   }
 
   const client = getBinanceClient();

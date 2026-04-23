@@ -7,6 +7,13 @@
   "bin": {
     "cryptopilot-mcp-binance": "dist/server.js"
   },
+  "exports": {
+    ".": "./dist/server.js",
+    "./paper-engine": {
+      "types": "./dist/lib/paper-engine.d.ts",
+      "default": "./dist/lib/paper-engine.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/server.ts",
