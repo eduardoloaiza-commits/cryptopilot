@@ -105,7 +105,7 @@ export async function simulatePaperFill(input: PaperFillInput): Promise<PaperFil
 
 export interface ClosePaperTradeInput {
   tradeId: string;
-  reason: "TP_HIT" | "SL_HIT" | "MANUAL" | "SWEEP";
+  reason: "TP_HIT" | "SL_HIT" | "TIME_STOP" | "MANUAL" | "SWEEP";
   exitPriceOverride?: number;
 }
 

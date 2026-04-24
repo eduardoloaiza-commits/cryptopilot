@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const SignalSchema = z.object({
   symbol: z.enum(["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]),
-  direction: z.enum(["LONG", "SHORT"]),
+  direction: z.literal("LONG"),
   confidence: z.number().min(0).max(1),
   rationale: z.string(),
   indicators: z.record(z.string(), z.number()).optional(),

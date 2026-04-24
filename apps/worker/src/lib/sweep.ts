@@ -3,6 +3,8 @@ import { logger } from "./logger.js";
 import { getActivePortfolio } from "./portfolio.js";
 import { closePaperTrade } from "@cryptopilot/mcp-binance/paper-engine";
 
+const TIME_STOP_MIN = Number(process.env.TIME_STOP_MIN ?? 60);
+
 interface TickerResp {
   price: string;
 }
@@ -41,7 +43,7 @@ export async function runSlTpSweep(): Promise<{ checked: number; closed: number 
 
     const sl = Number(t.stopLoss);
     const tp = t.takeProfit != null ? Number(t.takeProfit) : null;
-    const reason =
+    let reason: "SL_HIT" | "TP_HIT" | "TIME_STOP" | null =
       t.side === "BUY"
         ? price <= sl
           ? "SL_HIT"
@@ -53,6 +55,14 @@ export async function runSlTpSweep(): Promise<{ checked: number; closed: number 
           : tp != null && price <= tp
             ? "TP_HIT"
             : null;
+
+    if (reason == null && TIME_STOP_MIN > 0) {
+      const ageMin = (Date.now() - new Date(t.openedAt).getTime()) / 60_000;
+      if (ageMin >= TIME_STOP_MIN) {
+        reason = "TIME_STOP";
+        logger.info({ tradeId: t.id, ageMin: Math.round(ageMin) }, "sweep.time_stop");
+      }
+    }
 
     if (reason) {
       try {
