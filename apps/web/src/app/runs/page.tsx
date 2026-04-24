@@ -3,6 +3,7 @@ import { prisma } from "@cryptopilot/db";
 import { getActivePortfolio } from "@/lib/queries";
 import { RunStartForm } from "@/components/run-start-form";
 import { CancelRunButton } from "@/components/cancel-run-button";
+import { AdjustRunButton } from "@/components/adjust-run-button";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -139,7 +140,12 @@ export default async function RunsPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {r.status === "running" && <CancelRunButton runId={r.id} />}
+                      {r.status === "running" && (
+                        <div className="flex items-center gap-1 justify-end">
+                          <AdjustRunButton runId={r.id} currentTotalHours={totalH} />
+                          <CancelRunButton runId={r.id} />
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@cryptopilot/db";
 import { CancelRunButton } from "@/components/cancel-run-button";
+import { AdjustRunButton } from "@/components/adjust-run-button";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -36,9 +37,17 @@ export default async function RunDetailPage({
             STARTED {run.startedAt.toLocaleString("es-CL")} · ENDS {run.endsAt.toLocaleString("es-CL")}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <StatusChip status={run.status} />
-          {run.status === "running" && <CancelRunButton runId={run.id} />}
+          {run.status === "running" && (
+            <>
+              <AdjustRunButton
+                runId={run.id}
+                currentTotalHours={(run.endsAt.getTime() - run.startedAt.getTime()) / 3_600_000}
+              />
+              <CancelRunButton runId={run.id} />
+            </>
+          )}
         </div>
       </header>
 
