@@ -25,103 +25,116 @@ export default async function TradesPage({ searchParams }: { searchParams: SP })
 
   return (
     <main className="space-y-4">
-      <h1 className="text-2xl font-semibold">Trades</h1>
+      <header>
+        <h1 className="display-mono text-on-surface uppercase">Trade History</h1>
+        <p className="label-caps text-outline mt-1">
+          {trades.length} REGISTROS · PORTFOLIO ACTIVO
+        </p>
+      </header>
 
       <FilterBar
         basePath="/trades"
         active={sp}
         fields={[
-          { name: "symbol", label: "Símbolo", options: symbols },
+          { name: "symbol", label: "Symbol", options: symbols },
           { name: "side", label: "Side", options: SIDES as unknown as string[] },
           { name: "status", label: "Status", options: STATUSES as unknown as string[] },
         ]}
       />
 
-      <p className="text-sm text-[color:var(--muted)]">
-        Mostrando {trades.length} trades.
-      </p>
-
       {trades.length === 0 ? (
-        <div className="rounded-lg border border-white/10 p-6 text-sm text-[color:var(--muted)]">
-          Sin trades que coincidan con los filtros.
+        <div className="bg-surface border border-white/10 p-8 text-center">
+          <p className="text-[13px] text-outline italic">No trades match the current filters.</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-white/10 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="text-xs text-[color:var(--muted)] bg-white/[0.02]">
-              <tr>
-                <th className="text-left px-4 py-2">Abierta</th>
-                <th className="text-left px-4 py-2">Símbolo</th>
-                <th className="text-left px-4 py-2">Side</th>
-                <th className="text-right px-4 py-2">Qty</th>
-                <th className="text-right px-4 py-2">Entry</th>
-                <th className="text-right px-4 py-2">Exit</th>
-                <th className="text-right px-4 py-2">SL</th>
-                <th className="text-right px-4 py-2">TP</th>
-                <th className="text-right px-4 py-2">P&amp;L</th>
-                <th className="text-left px-4 py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {trades.map((t) => {
-                const pnl = t.pnlUsdt != null ? Number(t.pnlUsdt) : null;
-                return (
-                  <tr key={t.id} className="border-t border-white/5 hover:bg-white/[0.02]">
-                    <td className="px-4 py-2 text-xs text-[color:var(--muted)]">
-                      {new Date(t.openedAt).toLocaleString("es-CL")}
-                    </td>
-                    <td className="px-4 py-2 font-medium">{t.symbol}</td>
-                    <td
-                      className={
-                        t.side === "BUY"
-                          ? "px-4 py-2 text-[color:var(--accent)]"
-                          : "px-4 py-2 text-[color:var(--danger)]"
-                      }
+        <div className="bg-surface border border-white/10 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left font-mono text-[12px]">
+              <thead>
+                <tr className="bg-white/[0.03] text-outline">
+                  <th className="px-4 py-3 label-caps">Time</th>
+                  <th className="px-4 py-3 label-caps">Symbol</th>
+                  <th className="px-4 py-3 label-caps">Side</th>
+                  <th className="px-4 py-3 label-caps text-right">Qty</th>
+                  <th className="px-4 py-3 label-caps text-right">Entry</th>
+                  <th className="px-4 py-3 label-caps text-right">Exit</th>
+                  <th className="px-4 py-3 label-caps text-right">SL</th>
+                  <th className="px-4 py-3 label-caps text-right">TP</th>
+                  <th className="px-4 py-3 label-caps text-right">P&amp;L</th>
+                  <th className="px-4 py-3 label-caps">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {trades.map((t, i) => {
+                  const pnl = t.pnlUsdt != null ? Number(t.pnlUsdt) : null;
+                  return (
+                    <tr
+                      key={t.id}
+                      className={i % 2 === 0 ? "bg-white/[0.01] hover:bg-white/[0.03]" : "hover:bg-white/[0.03]"}
                     >
-                      {t.side}
-                    </td>
-                    <td className="px-4 py-2 text-right">{Number(t.qty).toFixed(6)}</td>
-                    <td className="px-4 py-2 text-right">${Number(t.entryPrice).toFixed(2)}</td>
-                    <td className="px-4 py-2 text-right text-[color:var(--muted)]">
-                      {t.exitPrice != null ? `$${Number(t.exitPrice).toFixed(2)}` : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-right text-[color:var(--muted)]">
-                      ${Number(t.stopLoss).toFixed(2)}
-                    </td>
-                    <td className="px-4 py-2 text-right text-[color:var(--muted)]">
-                      {t.takeProfit ? `$${Number(t.takeProfit).toFixed(2)}` : "—"}
-                    </td>
-                    <td
-                      className={
-                        pnl == null
-                          ? "px-4 py-2 text-right text-[color:var(--muted)]"
-                          : pnl >= 0
-                            ? "px-4 py-2 text-right text-[color:var(--accent)]"
-                            : "px-4 py-2 text-right text-[color:var(--danger)]"
-                      }
-                    >
-                      {pnl == null ? "—" : `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)}`}
-                    </td>
-                    <td className="px-4 py-2 text-xs">
-                      <StatusBadge status={t.status} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <td className="px-4 py-3 text-outline">
+                        {new Date(t.openedAt).toLocaleString("es-CL", {
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-on-surface">{t.symbol}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-1 text-[10px] border ${t.side === "BUY" ? "text-primary border-primary/30" : "text-error border-error/30"}`}
+                        >
+                          {t.side}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">{Number(t.qty).toFixed(6)}</td>
+                      <td className="px-4 py-3 text-right">${Number(t.entryPrice).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right text-outline">
+                        {t.exitPrice != null ? `$${Number(t.exitPrice).toFixed(2)}` : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right text-error/70">
+                        ${Number(t.stopLoss).toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-primary/70">
+                        {t.takeProfit ? `$${Number(t.takeProfit).toFixed(2)}` : "—"}
+                      </td>
+                      <td
+                        className={
+                          pnl == null
+                            ? "px-4 py-3 text-right text-outline"
+                            : pnl >= 0
+                              ? "px-4 py-3 text-right text-primary font-bold"
+                              : "px-4 py-3 text-right text-error font-bold"
+                        }
+                      >
+                        {pnl == null ? "—" : `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)}`}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusChip status={t.status} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </main>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const tone =
+function StatusChip({ status }: { status: string }) {
+  const cls =
     status === "OPEN"
-      ? "bg-blue-500/20 text-blue-300"
+      ? "text-blue-300 border-blue-400/40"
       : status === "CLOSED"
-        ? "bg-white/5 text-[color:var(--muted)]"
-        : "bg-[color:var(--danger)]/20 text-[color:var(--danger)]";
-  return <span className={`px-2 py-0.5 rounded text-[10px] ${tone}`}>{status}</span>;
+        ? "text-outline border-white/20"
+        : "text-error border-error/40";
+  return (
+    <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] border ${cls}`}>
+      {status}
+    </span>
+  );
 }

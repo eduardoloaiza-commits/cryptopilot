@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { TerminalField } from "@/components/terminal-field";
 
 const SUGGESTED = [
   "¿Nombre de tu primera mascota?",
@@ -59,89 +60,79 @@ export function SetupForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5 rounded-lg border border-white/10 p-5">
-      <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
-      <Field
-        label="Contraseña (mín 8)"
-        type="password"
-        value={password}
-        onChange={setPassword}
-        autoComplete="new-password"
-      />
-      <Field
-        label="Repite contraseña"
-        type="password"
-        value={confirm}
-        onChange={setConfirm}
-        autoComplete="new-password"
-      />
-
-      <div className="pt-3 border-t border-white/5">
-        <h2 className="text-sm font-medium mb-3">Preguntas de seguridad</h2>
-        <p className="text-xs text-[color:var(--muted)] mb-3">
-          Las respuestas se normalizan (sin mayúsculas, sin espacios extra). Memoriza
-          ambas — si las pierdes, no podrás recuperar la cuenta.
-        </p>
-        <div className="space-y-3">
-          {questions.map((q, i) => (
-            <div key={i} className="space-y-2">
-              <input
-                type="text"
-                list={`sug-${i}`}
-                value={q.question}
-                onChange={(e) => setQ(i, { question: e.target.value })}
-                placeholder="Pregunta"
-                className="w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm"
-              />
-              <datalist id={`sug-${i}`}>
-                {SUGGESTED.map((s) => (
-                  <option key={s} value={s} />
-                ))}
-              </datalist>
-              <input
-                type="text"
-                value={q.answer}
-                onChange={(e) => setQ(i, { answer: e.target.value })}
-                placeholder="Respuesta"
-                className="w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm"
-              />
-            </div>
-          ))}
+    <form onSubmit={submit} className="space-y-8">
+      <div className="space-y-6">
+        <TerminalField
+          label="Email Address"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          placeholder="operator@cryptopilot.io"
+          autoComplete="email"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <TerminalField
+            label="Password (min 8)"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            placeholder="••••••••"
+            autoComplete="new-password"
+          />
+          <TerminalField
+            label="Confirm password"
+            type="password"
+            value={confirm}
+            onChange={setConfirm}
+            placeholder="••••••••"
+            autoComplete="new-password"
+          />
         </div>
       </div>
 
-      {err && <p className="text-xs text-destructive">{err}</p>}
-      <Button type="submit" disabled={busy} className="w-full">
-        {busy ? "Creando…" : "Crear cuenta"}
+      <div className="pt-6 border-t border-white/10 space-y-6">
+        <div>
+          <h2 className="headline-sm text-on-surface">Preguntas de seguridad</h2>
+          <p className="label-caps text-tertiary mt-1">RECOVERY PROTOCOL · ALPHA</p>
+        </div>
+
+        {questions.map((q, i) => (
+          <div key={i} className="space-y-3 p-4 bg-white/[0.02] border-l border-white/10">
+            <TerminalField
+              label={`Security Question ${String(i + 1).padStart(2, "0")}`}
+              type="text"
+              list={`sug-${i}`}
+              value={q.question}
+              onChange={(v) => setQ(i, { question: v })}
+              placeholder="¿Nombre de tu primera mascota?"
+            />
+            <datalist id={`sug-${i}`}>
+              {SUGGESTED.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+            <TerminalField
+              label="Answer"
+              type="text"
+              value={q.answer}
+              onChange={(v) => setQ(i, { answer: v })}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-tertiary/[0.08] border border-tertiary/20 p-4 flex gap-3 items-start">
+        <span className="material-symbols-outlined text-tertiary text-[16px]">warning</span>
+        <p className="text-[13px] text-tertiary">
+          Memoriza las respuestas — si las pierdes, no podrás recuperar la cuenta.
+        </p>
+      </div>
+
+      {err && <p className="label-caps text-error">{err}</p>}
+
+      <Button type="submit" variant="default" disabled={busy} className="w-full py-4">
+        {busy ? "Initializing…" : "Initialize Secure Access →"}
       </Button>
     </form>
-  );
-}
-
-function Field({
-  label,
-  type,
-  value,
-  onChange,
-  autoComplete,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs text-[color:var(--muted)]">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required
-        autoComplete={autoComplete}
-        className="mt-1 w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-[hsl(var(--sh-primary))]"
-      />
-    </label>
   );
 }

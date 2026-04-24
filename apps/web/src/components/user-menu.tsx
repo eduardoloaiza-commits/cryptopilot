@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export function UserMenu({ email }: { email: string }) {
   const router = useRouter();
@@ -21,17 +20,21 @@ export function UserMenu({ email }: { email: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2 text-xs">
+    <div className="flex items-center gap-3">
       <Link
         href="/account"
-        className="text-[color:var(--muted)] hover:text-[color:var(--fg)]"
+        className="label-caps text-outline hover:text-on-surface transition-colors hidden sm:block"
         title={email}
       >
         {email}
       </Link>
-      <Button size="sm" variant="ghost" onClick={signOut} disabled={busy}>
+      <button
+        onClick={signOut}
+        disabled={busy}
+        className="label-caps text-outline hover:text-error transition-colors"
+      >
         {busy ? "…" : "Salir"}
-      </Button>
+      </button>
     </div>
   );
 }

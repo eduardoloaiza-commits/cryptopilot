@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { TerminalField } from "@/components/terminal-field";
 
 interface Question {
   position: number;
@@ -76,10 +77,17 @@ export function RecoverForm() {
 
   if (step === "email") {
     return (
-      <form onSubmit={fetchQuestions} className="space-y-4 rounded-lg border border-white/10 p-5">
-        <Field label="Email" type="email" value={email} onChange={setEmail} />
-        {err && <p className="text-xs text-destructive">{err}</p>}
-        <Button type="submit" disabled={busy} className="w-full">
+      <form onSubmit={fetchQuestions} className="flex flex-col gap-5">
+        <TerminalField
+          label="Email Address"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          placeholder="operator@cryptopilot.io"
+          autoComplete="email"
+        />
+        {err && <p className="label-caps text-error">{err}</p>}
+        <Button type="submit" variant="primary" disabled={busy} className="w-full">
           {busy ? "Cargando…" : "Continuar"}
         </Button>
       </form>
@@ -87,71 +95,44 @@ export function RecoverForm() {
   }
 
   return (
-    <form onSubmit={reset} className="space-y-4 rounded-lg border border-white/10 p-5">
-      <p className="text-xs text-[color:var(--muted)]">
-        Responde las 3 preguntas exactamente como las configuraste (no importan mayúsculas
-        ni espacios extra).
+    <form onSubmit={reset} className="flex flex-col gap-5">
+      <p className="label-caps text-outline">
+        Responde las 3 preguntas (se normaliza: sin mayúsculas, sin espacios extra).
       </p>
-      {questions.map((q) => (
-        <label key={q.position} className="block">
-          <span className="text-xs text-[color:var(--muted)]">{q.question}</span>
-          <input
+      {questions.map((q, i) => (
+        <div key={q.position} className="p-4 bg-white/[0.02] border-l border-white/10 space-y-2">
+          <span className="label-caps text-outline">
+            Question {String(i + 1).padStart(2, "0")}
+          </span>
+          <p className="text-[13px] text-on-surface">{q.question}</p>
+          <TerminalField
+            label="Answer"
             type="text"
             value={answers[q.position] ?? ""}
-            onChange={(e) => setAnswers({ ...answers, [q.position]: e.target.value })}
-            required
-            className="mt-1 w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm"
+            onChange={(v) => setAnswers({ ...answers, [q.position]: v })}
           />
-        </label>
+        </div>
       ))}
-      <div className="pt-3 border-t border-white/5 space-y-3">
-        <Field
-          label="Nueva contraseña (mín 8)"
+      <div className="pt-4 border-t border-white/5 space-y-4">
+        <TerminalField
+          label="New password (min 8)"
           type="password"
           value={newPassword}
           onChange={setNewPassword}
           autoComplete="new-password"
         />
-        <Field
-          label="Repite nueva contraseña"
+        <TerminalField
+          label="Confirm new password"
           type="password"
           value={confirm}
           onChange={setConfirm}
           autoComplete="new-password"
         />
       </div>
-      {err && <p className="text-xs text-destructive">{err}</p>}
-      <Button type="submit" disabled={busy} className="w-full">
-        {busy ? "Verificando…" : "Resetear contraseña"}
+      {err && <p className="label-caps text-error">{err}</p>}
+      <Button type="submit" variant="primary" disabled={busy} className="w-full">
+        {busy ? "Verificando…" : "Reset password"}
       </Button>
     </form>
-  );
-}
-
-function Field({
-  label,
-  type,
-  value,
-  onChange,
-  autoComplete,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs text-[color:var(--muted)]">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required
-        autoComplete={autoComplete}
-        className="mt-1 w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-[hsl(var(--sh-primary))]"
-      />
-    </label>
   );
 }

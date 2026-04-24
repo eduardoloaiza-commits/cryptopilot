@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { TerminalField } from "@/components/terminal-field";
 
 export function SignInForm({ next }: { next: string }) {
   const router = useRouter();
@@ -35,47 +36,27 @@ export function SignInForm({ next }: { next: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-lg border border-white/10 p-5">
-      <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
-      <Field
-        label="Contraseña"
+    <form onSubmit={submit} className="flex flex-col gap-5">
+      <TerminalField
+        label="Email Address"
+        type="email"
+        value={email}
+        onChange={setEmail}
+        placeholder="user@cryptopilot.ai"
+        autoComplete="email"
+      />
+      <TerminalField
+        label="Password"
         type="password"
         value={password}
         onChange={setPassword}
+        placeholder="••••••••"
         autoComplete="current-password"
       />
-      {err && <p className="text-xs text-destructive">{err}</p>}
-      <Button type="submit" disabled={busy} className="w-full">
-        {busy ? "Ingresando…" : "Ingresar"}
+      {err && <p className="label-caps text-error">{err}</p>}
+      <Button type="submit" variant="primary" disabled={busy} className="w-full">
+        {busy ? "Ingresando…" : "Authorize Access"}
       </Button>
     </form>
-  );
-}
-
-function Field({
-  label,
-  type,
-  value,
-  onChange,
-  autoComplete,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs text-[color:var(--muted)]">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required
-        autoComplete={autoComplete}
-        className="mt-1 w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-[hsl(var(--sh-primary))]"
-      />
-    </label>
   );
 }
