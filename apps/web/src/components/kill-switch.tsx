@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   killActive: boolean;
@@ -61,41 +62,31 @@ export function WorkerControls({ killActive, killReason, paused, pausedReason }:
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          size="sm"
+          variant={paused ? "warn" : "outline"}
           onClick={doPause}
           disabled={busy !== null || killActive}
-          className={
-            paused
-              ? "rounded px-3 py-2 text-sm font-medium bg-yellow-400 text-black hover:opacity-90 disabled:opacity-40"
-              : "rounded px-3 py-2 text-sm font-medium border border-yellow-400/60 text-yellow-300 hover:bg-yellow-400/10 disabled:opacity-40"
-          }
           title={killActive ? "Kill-switch activo — usa el botón rojo" : undefined}
         >
           {busy === "pause" ? "…" : paused ? "Reanudar" : "Pausar"}
-        </button>
-        <button
+        </Button>
+        <Button
+          size="sm"
+          variant={killActive ? "default" : "destructive"}
           onClick={doKill}
           disabled={busy !== null}
-          className={
-            killActive
-              ? "rounded px-3 py-2 text-sm font-medium bg-[color:var(--accent)] text-black hover:opacity-90 disabled:opacity-50"
-              : "rounded px-3 py-2 text-sm font-medium bg-[color:var(--danger)] text-white hover:opacity-90 disabled:opacity-50"
-          }
         >
           {busy === "kill" ? "…" : killActive ? "Reactivar" : "Kill-switch"}
-        </button>
+        </Button>
       </div>
       {killActive && killReason && (
-        <p className="text-xs text-[color:var(--danger)] max-w-[280px] text-right">
-          Kill: {killReason}
-        </p>
+        <p className="text-xs text-destructive max-w-[280px] text-right">Kill: {killReason}</p>
       )}
       {!killActive && paused && pausedReason && (
-        <p className="text-xs text-yellow-300 max-w-[280px] text-right">
-          Pausado: {pausedReason}
-        </p>
+        <p className="text-xs text-warn max-w-[280px] text-right">Pausado: {pausedReason}</p>
       )}
-      {error && <p className="text-xs text-[color:var(--danger)]">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }

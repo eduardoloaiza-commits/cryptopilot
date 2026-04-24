@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 interface Initial {
   maxPerTradePct: number;
@@ -99,20 +100,16 @@ export function GuardrailsForm({ initial }: { initial: Initial }) {
       />
 
       <div className="flex items-center gap-3 pt-2 border-t border-white/5">
-        <button
-          disabled={!dirty || busy}
-          onClick={submit}
-          className="rounded px-4 py-2 text-sm font-medium bg-[color:var(--accent)] text-black hover:opacity-90 disabled:opacity-40"
-        >
+        <Button disabled={!dirty || busy} onClick={submit}>
           {busy ? "Guardando…" : "Guardar cambios"}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
           disabled={!dirty || busy}
           onClick={() => setForm(initial)}
-          className="rounded px-4 py-2 text-sm font-medium border border-white/10 hover:bg-white/5 disabled:opacity-40"
         >
           Descartar
-        </button>
+        </Button>
         {msg && (
           <span
             className={

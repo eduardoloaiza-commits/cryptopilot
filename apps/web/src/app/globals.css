@@ -4,11 +4,33 @@
 
 :root {
   color-scheme: dark;
+
+  /* Legacy tokens — siguen en uso en páginas y componentes actuales */
   --bg: #0b0d10;
   --fg: #e6e6e6;
   --muted: #8b92a0;
   --accent: #34d399;
   --danger: #f87171;
+
+  /* shadcn-style tokens — usados por componentes primitivos nuevos.
+     Se prefixan con --sh- para no colisionar con los legacy.
+     Mismos colores base: verde #34d399 como primary, gris frío para el chrome. */
+  --sh-card: 220 14% 7%;
+  --sh-card-foreground: 0 0% 90%;
+  --sh-primary: 158 64% 52%;
+  --sh-primary-foreground: 220 14% 5%;
+  --sh-secondary: 220 10% 14%;
+  --sh-secondary-foreground: 0 0% 90%;
+  --sh-destructive: 0 84% 65%;
+  --sh-destructive-foreground: 0 0% 100%;
+  --sh-muted: 220 10% 40%;
+  --sh-border: 0 0% 100%;
+  --sh-input: 0 0% 100%;
+  --sh-ring: 158 64% 52%;
+  --sh-warn: 48 96% 60%;
+  --sh-warn-foreground: 220 14% 5%;
+
+  --radius: 0.625rem;
 }
 
 html,
@@ -17,3 +39,6 @@ body {
   color: var(--fg);
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
+
+/* Los border helpers de Tailwind usan la opacidad para --sh-border desde
+   `border-white/10`, así que no forzamos un default aquí. */
