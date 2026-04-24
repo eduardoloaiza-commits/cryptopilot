@@ -207,6 +207,13 @@ model Session {
   @@index([expiresAt])
 }
 
+model SystemState {
+  id         String   @id @default("singleton")
+  activeMode Mode     @default(PAPER)
+  updatedAt  DateTime @updatedAt
+  updatedBy  String?
+}
+
 model EvaluationRun {
   id          String    @id @default(cuid())
   portfolioId String

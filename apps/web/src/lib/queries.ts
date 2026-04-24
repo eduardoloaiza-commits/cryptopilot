@@ -1,4 +1,4 @@
-import { prisma } from "@cryptopilot/db";
+import { prisma, getActiveMode } from "@cryptopilot/db";
 
 export type HeartbeatHealth = "online" | "stale" | "error" | "offline" | "unknown";
 
@@ -17,7 +17,7 @@ export function classifyHeartbeat(hb: {
 }
 
 export async function getActivePortfolio() {
-  const mode = (process.env.MODE ?? "PAPER") as "PAPER" | "TESTNET" | "LIVE";
+  const mode = await getActiveMode();
   return prisma.portfolio.findFirst({
     where: { mode },
     include: { guardrails: true },

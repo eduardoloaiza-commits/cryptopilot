@@ -1,22 +1,20 @@
-import { prisma, Prisma } from "@cryptopilot/db";
+import { prisma, Prisma, getActiveMode, type ActiveMode } from "@cryptopilot/db";
 import { logger } from "./logger.js";
 
 const INITIAL_CAPITAL_USDT = Number(
   process.env.INITIAL_CAPITAL_USDT ?? "1000",
 );
 
-function resolveMode(): "PAPER" | "TESTNET" | "LIVE" {
-  const raw = (process.env.MODE ?? "PAPER").toUpperCase();
-  if (raw === "PAPER" || raw === "TESTNET" || raw === "LIVE") return raw;
-  throw new Error(`Invalid MODE: ${raw}`);
+export async function resolveMode(): Promise<ActiveMode> {
+  return getActiveMode();
 }
 
 /**
- * Idempotente: devuelve el Portfolio del modo actual.
+ * Idempotente: devuelve el Portfolio del modo activo.
  * Si no existe, lo crea con capital inicial + guardrails por defecto.
  */
 export async function ensurePortfolio() {
-  const mode = resolveMode();
+  const mode = await resolveMode();
   const existing = await prisma.portfolio.findFirst({
     where: { mode },
     include: { guardrails: true },
@@ -55,7 +53,7 @@ export async function ensurePortfolio() {
 }
 
 export async function getActivePortfolio() {
-  const mode = resolveMode();
+  const mode = await resolveMode();
   return prisma.portfolio.findFirst({
     where: { mode },
     include: { guardrails: true },
