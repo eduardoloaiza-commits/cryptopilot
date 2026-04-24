@@ -51,17 +51,19 @@ enum AgentPhase {
 }
 
 model Portfolio {
-  id             String       @id @default(cuid())
-  mode           Mode
-  initialCapital Decimal      @db.Decimal(20, 8)
-  currentEquity  Decimal      @db.Decimal(20, 8)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  movements      Movement[]
-  trades         Trade[]
-  guardrails     Guardrails?
-  dailyReports   DailyReport[]
-  agentLogs      AgentLog[]
+  id               String            @id @default(cuid())
+  mode             Mode
+  initialCapital   Decimal           @db.Decimal(20, 8)
+  currentEquity    Decimal           @db.Decimal(20, 8)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  movements        Movement[]
+  trades           Trade[]
+  guardrails       Guardrails?
+  dailyReports     DailyReport[]
+  agentLogs        AgentLog[]
+  heartbeat        WorkerHeartbeat?
+  equitySnapshots  EquitySnapshot[]
 }
 
 model Trade {
@@ -135,9 +137,36 @@ model Guardrails {
   maxOpenPositions      Int       @default(3)
   killSwitchTriggered   Boolean   @default(false)
   killSwitchReason      String?
+  paused                Boolean   @default(false)
+  pausedReason          String?
   proposedByAi          Boolean   @default(false)
   approvedAt            DateTime?
   updatedAt             DateTime  @updatedAt
+}
+
+model WorkerHeartbeat {
+  id              String    @id @default(cuid())
+  portfolioId     String    @unique
+  portfolio       Portfolio @relation(fields: [portfolioId], references: [id])
+  status          String
+  mode            String
+  cycleCount      Int       @default(0)
+  lastCycleAt     DateTime?
+  lastCycleMs     Int?
+  lastError       String?   @db.Text
+  startedAt       DateTime
+  updatedAt       DateTime  @updatedAt
+}
+
+model EquitySnapshot {
+  id          String    @id @default(cuid())
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+  ts          DateTime  @default(now())
+  equity      Decimal   @db.Decimal(20, 8)
+  openCount   Int       @default(0)
+
+  @@index([portfolioId, ts])
 }
 
 model AgentLog {

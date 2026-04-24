@@ -4,29 +4,41 @@ import { runAnalyst } from "./agents/analyst.js";
 import { runRiskManager, type RiskVerdict } from "./agents/risk-manager.js";
 import { runTrader } from "./agents/trader.js";
 import { runAccountant } from "./agents/accountant.js";
-import { isKillSwitchActive } from "./guardrails.js";
+import { cycleGate } from "./guardrails.js";
 import { runPrefilter } from "./lib/prefilter.js";
 import { logAgentCall } from "./lib/agent-log.js";
 import { getActivePortfolio } from "./lib/portfolio.js";
+import { heartbeatCycle, heartbeatStart, snapshotEquity } from "./lib/heartbeat.js";
 
 const CYCLE_INTERVAL_MS = Number(process.env.CYCLE_INTERVAL_MS ?? 180_000);
 
 export async function startOrchestrator() {
   logger.info({ intervalMs: CYCLE_INTERVAL_MS }, "orchestrator.start");
+  const mode = process.env.MODE ?? "PAPER";
+  await heartbeatStart(mode).catch((err) => logger.warn({ err }, "heartbeat.start.failed"));
 
   while (true) {
+    const started = Date.now();
+    let cycleError: string | null = null;
     try {
       await runCycle();
     } catch (err) {
+      cycleError = (err as Error).message ?? String(err);
       logger.error({ err }, "cycle.failed");
     }
+    const ms = Date.now() - started;
+    await heartbeatCycle({ mode, lastCycleMs: ms, error: cycleError }).catch((err) =>
+      logger.warn({ err }, "heartbeat.cycle.failed"),
+    );
+    await snapshotEquity();
     await sleep(CYCLE_INTERVAL_MS);
   }
 }
 
 export async function runCycle() {
-  if (await isKillSwitchActive()) {
-    logger.warn("kill-switch active — skipping cycle");
+  const gate = await cycleGate();
+  if (!gate.allow) {
+    logger.warn({ reason: gate.reason, detail: gate.detail }, "cycle.gated");
     return;
   }
 

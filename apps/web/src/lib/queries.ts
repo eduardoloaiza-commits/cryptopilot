@@ -1,5 +1,21 @@
 import { prisma } from "@cryptopilot/db";
 
+export type HeartbeatHealth = "online" | "stale" | "error" | "offline" | "unknown";
+
+export function classifyHeartbeat(hb: {
+  status: string;
+  lastCycleAt: Date | null;
+} | null, cycleIntervalMs = 180_000): HeartbeatHealth {
+  if (!hb || !hb.lastCycleAt) return "unknown";
+  const ageMs = Date.now() - new Date(hb.lastCycleAt).getTime();
+  const staleAfter = cycleIntervalMs * 3;
+  const offlineAfter = cycleIntervalMs * 10;
+  if (ageMs > offlineAfter) return "offline";
+  if (hb.status === "error") return "error";
+  if (ageMs > staleAfter) return "stale";
+  return "online";
+}
+
 export async function getActivePortfolio() {
   const mode = (process.env.MODE ?? "PAPER") as "PAPER" | "TESTNET" | "LIVE";
   return prisma.portfolio.findFirst({
@@ -23,7 +39,7 @@ export async function getDashboard() {
   const tomorrow = new Date(today);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
 
-  const [openTrades, closedToday, pnlAgg, feesAgg, openCount, lastLogs] = await Promise.all([
+  const [openTrades, closedToday, pnlAgg, feesAgg, openCount, lastLogs, heartbeat, equitySeries] = await Promise.all([
     prisma.trade.findMany({
       where: { portfolioId: portfolio.id, status: "OPEN" },
       orderBy: { openedAt: "desc" },
@@ -58,6 +74,13 @@ export async function getDashboard() {
       orderBy: { ts: "desc" },
       take: 10,
     }),
+    prisma.workerHeartbeat.findUnique({ where: { portfolioId: portfolio.id } }),
+    prisma.equitySnapshot.findMany({
+      where: { portfolioId: portfolio.id, ts: { gte: new Date(Date.now() - 7 * 24 * 3600_000) } },
+      orderBy: { ts: "asc" },
+      select: { ts: true, equity: true, openCount: true },
+      take: 2000,
+    }),
   ]);
 
   return {
@@ -68,6 +91,13 @@ export async function getDashboard() {
     todayFeesUsdt: Number(feesAgg._sum.amountUsdt ?? 0),
     tradesClosedToday: closedToday,
     lastLogs,
+    heartbeat,
+    heartbeatHealth: classifyHeartbeat(heartbeat),
+    equitySeries: equitySeries.map((s) => ({
+      ts: s.ts.toISOString(),
+      equity: Number(s.equity),
+      openCount: s.openCount,
+    })),
   };
 }
 

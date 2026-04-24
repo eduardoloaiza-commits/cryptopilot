@@ -1,5 +1,6 @@
 import { getDashboard } from "@/lib/queries";
 import { KillSwitchButton } from "@/components/kill-switch";
+import { HeartbeatCard } from "@/components/heartbeat-card";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,7 +22,17 @@ export default async function HomePage() {
     );
   }
 
-  const { portfolio, openTrades, openCount, todayPnlUsdt, todayFeesUsdt, tradesClosedToday, lastLogs } = data;
+  const {
+    portfolio,
+    openTrades,
+    openCount,
+    todayPnlUsdt,
+    todayFeesUsdt,
+    tradesClosedToday,
+    lastLogs,
+    heartbeat,
+    heartbeatHealth,
+  } = data;
   const equity = Number(portfolio.currentEquity);
   const initial = Number(portfolio.initialCapital);
   const cumulativeUsd = equity - initial;
@@ -46,7 +57,8 @@ export default async function HomePage() {
         />
       </header>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <HeartbeatCard health={heartbeatHealth} heartbeat={heartbeat} />
         <Metric label="Equity" value={`$${equity.toFixed(2)}`} hint={`capital inicial $${initial.toFixed(2)}`} />
         <Metric
           label="Acumulado"
