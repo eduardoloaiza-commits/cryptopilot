@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const OrderProposalSchema = z.object({
-  symbol: z.enum(["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]),
+  symbol: z.string().regex(/^[A-Z0-9]+USDT$/),
   side: z.literal("BUY"),
   type: z.enum(["MARKET", "LIMIT"]),
   qty: z.number().positive(),

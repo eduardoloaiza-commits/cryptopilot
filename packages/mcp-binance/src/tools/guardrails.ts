@@ -1,5 +1,5 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { assertWhitelisted } from "../lib/whitelist.js";
+import { assertWhitelistedAsync } from "../lib/whitelist.js";
 import { prisma, Prisma } from "@cryptopilot/db";
 import { getMode } from "../lib/binance-client.js";
 
@@ -81,7 +81,7 @@ export async function validateOrderAgainstGuardrails(
   proposal: OrderProposal,
 ): Promise<GuardrailVerdict> {
   try {
-    assertWhitelisted(proposal.symbol);
+    await assertWhitelistedAsync(proposal.symbol);
   } catch (e) {
     return { ok: false, reason: (e as Error).message };
   }

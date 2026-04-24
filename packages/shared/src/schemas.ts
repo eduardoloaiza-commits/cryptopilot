@@ -1,7 +1,14 @@
 import { z } from "zod";
-import { WHITELIST_SYMBOLS } from "./constants.js";
 
-export const SymbolSchema = z.enum(WHITELIST_SYMBOLS);
+/**
+ * Acepta cualquier pair USDT-quote válido — la membresía en el universo
+ * dinámico se valida en runtime por el MCP (guardrails + whitelist.ts).
+ */
+export const SymbolSchema = z
+  .string()
+  .min(5)
+  .regex(/^[A-Z0-9]+USDT$/, "symbol must be <BASE>USDT with uppercase alphanumerics");
+
 export const SideSchema = z.enum(["BUY", "SELL"]);
 export const ModeSchema = z.enum(["PAPER", "TESTNET", "LIVE"]);
 

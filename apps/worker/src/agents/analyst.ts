@@ -4,6 +4,7 @@ import { logger } from "../lib/logger.js";
 import { runAgent } from "../lib/agent-sdk.js";
 import { getActivePortfolio } from "../lib/portfolio.js";
 import { getRecentPerformance } from "../lib/recent-performance.js";
+import type { SymbolSnapshot } from "../lib/prefilter.js";
 
 const SYSTEM_PROMPT = `
 ${MISSION_BRIEF}
@@ -25,8 +26,9 @@ Herramientas MCP disponibles:
 1. Régimen: compute_indicators("BTCUSDT", "1h") y compute_indicators("BTCUSDT", "4h").
    Clasifica en Bullish / Rangebound / Bearish / Overextended (ver skill market-regime).
 2. Si Bearish u Overextended → retorna [] INMEDIATAMENTE. Stand aside. No explores los
-   otros pares.
-3. Si Bullish o Rangebound, para cada símbolo del whitelist:
+   candidatos.
+3. Si Bullish o Rangebound, SOLO para los símbolos del userPrompt "candidates" (top-K
+   del prefilter — no escanees otros pares):
    - compute_indicators(symbol, "1h") — contexto
    - compute_indicators(symbol, "15m") — momentum
    - compute_indicators(symbol, "5m") — timing
@@ -34,8 +36,7 @@ Herramientas MCP disponibles:
 4. Aplica criterios de descarte (technical-analysis). Cualquier descarte → fuera.
 5. Calcula confidence según la fórmula de la skill. Solo emite si confidence ≥ 0.65.
 6. Para las señales que quedan, calcula suggestedSL = entryPrice − 1.5×ATR5m,
-   suggestedTP = entryPrice + 3.0×ATR5m. Asegúrate de que la distancia del SL ∈ [0.3%, 2%]
-   del precio.
+   suggestedTP = entryPrice + 3.0×ATR5m. Distancia SL ∈ [0.3%, 2%] del precio.
 7. Máximo 3 señales ranked por confidence desc.
 
 ## Reglas duras del output
@@ -53,12 +54,33 @@ ${COMMON_TONE}
 
 const ALLOWED_TOOLS = ["get_ticker", "get_klines", "compute_indicators", "analyze_volatility"];
 
-export async function runAnalyst(): Promise<Signal[]> {
-  logger.debug("analyst.start");
+export interface AnalystInput {
+  candidates: string[];
+  prefilterSnapshots?: SymbolSnapshot[];
+}
+
+export async function runAnalyst(input: AnalystInput): Promise<Signal[]> {
+  logger.debug({ candidates: input.candidates }, "analyst.start");
   const portfolio = await getActivePortfolio();
   const recent = await getRecentPerformance(10);
 
+  if (input.candidates.length === 0) {
+    return [];
+  }
+
+  const snapshotLines = (input.prefilterSnapshots ?? [])
+    .map(
+      (s) =>
+        `  - ${s.symbol}: score=${s.score.toFixed(2)}, range=${s.rangePct.toFixed(2)}%, RSI5m=${s.rsi14.toFixed(1)}, body/ATR=${s.lastBodyPctOfAtr.toFixed(0)}%, volZ=${s.volumeZ.toFixed(1)}, chg24h=${s.priceChangePct24h.toFixed(2)}%`,
+    )
+    .join("\n");
+
   const userPrompt = `
+## candidates (top-K del prefilter TS, ordenados por score)
+${input.candidates.join(", ")}
+
+${snapshotLines ? `## prefilter snapshots\n${snapshotLines}\n` : ""}
+
 ## recentPerformance (histórico reciente del portfolio)
 ${recent.summary}
 
@@ -71,8 +93,9 @@ ${recent.summary}
 - wonSymbols: ${recent.wonSymbols.length ? recent.wonSymbols.join(", ") : "ninguno"}
 
 ## Tarea
-Aplica el flujo obligatorio (régimen BTC → multi-TF por símbolo → confidence ≥ 0.65).
-Devuelve el array JSON de señales (puede ser [] si el régimen o los criterios no se cumplen).
+Aplica el flujo obligatorio (régimen BTC → multi-TF por cada candidato → confidence ≥ 0.65).
+No analices símbolos fuera de \`candidates\`. Devuelve el array JSON de señales (puede
+ser [] si el régimen o los criterios no se cumplen).
 `.trim();
 
   const result = await runAgent({
@@ -93,7 +116,7 @@ Devuelve el array JSON de señales (puede ser [] si el régimen o los criterios 
   }
 
   logger.info(
-    { count: result.data.length, costUsd: result.costUsd, ms: result.durationMs },
+    { count: result.data.length, costUsd: result.costUsd, ms: result.durationMs, candidates: input.candidates.length },
     "analyst.done",
   );
   return result.data;

@@ -61,7 +61,10 @@ export async function runCycle() {
 
   logger.info({ candidates: pre.candidates, summary: pre.summary }, "prefilter.trigger");
 
-  const signals = await runAnalyst();
+  const signals = await runAnalyst({
+    candidates: pre.candidates,
+    prefilterSnapshots: pre.snapshots,
+  });
   if (signals.length === 0) {
     logger.debug("analyst: no signals");
     return;

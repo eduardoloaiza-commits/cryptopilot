@@ -1,8 +1,11 @@
+import { getUniverse, type UniverseEntry } from "@cryptopilot/shared";
 import { logger } from "./logger.js";
 
-const SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"] as const;
 const INTERVAL = "5m";
 const LIMIT = 20;
+const UNIVERSE_SIZE = Number(process.env.UNIVERSE_SIZE ?? 30);
+const UNIVERSE_MIN_VOL = Number(process.env.UNIVERSE_MIN_VOLUME_USDT ?? 50_000_000);
+const TOP_K = Number(process.env.PREFILTER_TOP_K ?? 5);
 
 interface Kline {
   open: number;
@@ -27,14 +30,16 @@ async function fetchKlines(symbol: string): Promise<Kline[]> {
   }));
 }
 
-interface SymbolSnapshot {
+export interface SymbolSnapshot {
   symbol: string;
   lastPrice: number;
+  quoteVolumeUsdt: number;
+  priceChangePct24h: number;
   rangePct: number;
   lastBodyPctOfAtr: number;
   rsi14: number;
   volumeZ: number;
-  interesting: boolean;
+  score: number;
   reasons: string[];
 }
 
@@ -78,7 +83,15 @@ function volumeZScore(klines: Kline[]): number {
   return std > 0 ? (last - mean) / std : 0;
 }
 
-function analyseSymbol(symbol: string, klines: Kline[]): SymbolSnapshot {
+function clip01(x: number): number {
+  return Math.max(0, Math.min(1, x));
+}
+
+function scoreSymbol(
+  entry: UniverseEntry,
+  klines: Kline[],
+): SymbolSnapshot | null {
+  if (klines.length < 15) return null;
   const last = klines[klines.length - 1]!;
   const highest = Math.max(...klines.map((k) => k.high));
   const lowest = Math.min(...klines.map((k) => k.low));
@@ -86,26 +99,41 @@ function analyseSymbol(symbol: string, klines: Kline[]): SymbolSnapshot {
   const rangePct = mean > 0 ? ((highest - lowest) / mean) * 100 : 0;
 
   const atr = computeAtr(klines);
+  const atrPct = mean > 0 ? (atr / mean) * 100 : 0;
   const lastBody = Math.abs(last.close - last.open);
   const lastBodyPctOfAtr = atr > 0 ? (lastBody / atr) * 100 : 0;
 
   const rsi = computeRsi(klines);
   const volZ = volumeZScore(klines);
 
+  // Descarte duro — ver skills/technical-analysis "Criterio de descarte"
+  if (atrPct < 0.15) return null; // mercado muerto, el fee se come todo
+
+  // Componentes normalizados [0,1]
+  const rangeN = clip01(rangePct / 2); // 2% range → 1.0
+  const bodyN = clip01(lastBodyPctOfAtr / 150); // body = 1.5x ATR → 1.0
+  const rsiDistN = clip01(Math.abs(rsi - 50) / 30); // RSI lejos de 50 (momentum)
+  const volN = clip01((volZ + 1) / 3); // volZ -1..2 → 0..1
+
+  const score =
+    0.35 * rangeN + 0.3 * volN + 0.2 * bodyN + 0.15 * rsiDistN;
+
   const reasons: string[] = [];
-  if (rangePct > 0.35) reasons.push(`range ${rangePct.toFixed(2)}%`);
-  if (lastBodyPctOfAtr > 80) reasons.push(`candle body ${lastBodyPctOfAtr.toFixed(0)}% ATR`);
-  if (rsi < 40 || rsi > 60) reasons.push(`RSI ${rsi.toFixed(1)}`);
-  if (volZ > 1.5) reasons.push(`vol z=${volZ.toFixed(1)}`);
+  if (rangePct > 0.5) reasons.push(`range ${rangePct.toFixed(2)}%`);
+  if (lastBodyPctOfAtr > 80) reasons.push(`body ${lastBodyPctOfAtr.toFixed(0)}%ATR`);
+  if (rsi < 35 || rsi > 65) reasons.push(`RSI ${rsi.toFixed(1)}`);
+  if (volZ > 1.2) reasons.push(`vol z=${volZ.toFixed(1)}`);
 
   return {
-    symbol,
+    symbol: entry.symbol,
     lastPrice: last.close,
+    quoteVolumeUsdt: entry.quoteVolumeUsdt,
+    priceChangePct24h: entry.priceChangePct,
     rangePct,
     lastBodyPctOfAtr,
     rsi14: rsi,
     volumeZ: volZ,
-    interesting: reasons.length >= 1,
+    score,
     reasons,
   };
 }
@@ -114,37 +142,52 @@ export interface PrefilterResult {
   shouldRunAnalyst: boolean;
   candidates: string[];
   snapshots: SymbolSnapshot[];
+  universeSize: number;
   summary: string;
 }
 
 export async function runPrefilter(): Promise<PrefilterResult> {
-  const snapshots: SymbolSnapshot[] = [];
-  await Promise.all(
-    SYMBOLS.map(async (sym) => {
+  const universe = await getUniverse({
+    topN: UNIVERSE_SIZE,
+    minQuoteVolumeUsdt: UNIVERSE_MIN_VOL,
+    mustInclude: ["BTCUSDT"],
+  });
+
+  const results = await Promise.all(
+    universe.map(async (entry) => {
       try {
-        const klines = await fetchKlines(sym);
-        snapshots.push(analyseSymbol(sym, klines));
+        const kl = await fetchKlines(entry.symbol);
+        return scoreSymbol(entry, kl);
       } catch (err) {
-        logger.warn({ err, sym }, "prefilter.fetch.failed");
+        logger.debug({ err, sym: entry.symbol }, "prefilter.fetch.failed");
+        return null;
       }
     }),
   );
 
-  const candidates = snapshots.filter((s) => s.interesting).map((s) => s.symbol);
-  const shouldRunAnalyst = candidates.length > 0;
+  const snapshots = results.filter((s): s is SymbolSnapshot => s !== null);
+  snapshots.sort((a, b) => b.score - a.score);
 
-  const summary = shouldRunAnalyst
-    ? snapshots
-        .filter((s) => s.interesting)
-        .map((s) => `${s.symbol}: ${s.reasons.join(", ")}`)
+  const top = snapshots.slice(0, TOP_K);
+
+  // Umbral de "hay oportunidad" — score mínimo 0.35 evita que entremos en
+  // ciclos sin ningún símbolo interesante. Igual el analyst LLM puede
+  // devolver [] si el régimen BTC es adverso.
+  const worthRunning = top.filter((s) => s.score >= 0.35);
+  const candidates = worthRunning.map((s) => s.symbol);
+
+  const summary = worthRunning.length
+    ? worthRunning
+        .slice(0, 5)
+        .map((s) => `${s.symbol} s=${s.score.toFixed(2)} ${s.reasons.join("/")}`)
         .join(" | ")
-    : `sin movimiento — mejor símbolo: ${snapshots
-        .slice()
-        .sort((a, b) => b.rangePct - a.rangePct)[0]
-        ?.symbol} range ${snapshots
-        .slice()
-        .sort((a, b) => b.rangePct - a.rangePct)[0]
-        ?.rangePct.toFixed(2)}%`;
+    : `sin oportunidades — top ${snapshots[0]?.symbol ?? "n/a"} score ${snapshots[0]?.score?.toFixed(2) ?? "n/a"}`;
 
-  return { shouldRunAnalyst, candidates, snapshots, summary };
+  return {
+    shouldRunAnalyst: worthRunning.length > 0,
+    candidates,
+    snapshots: top,
+    universeSize: universe.length,
+    summary,
+  };
 }
