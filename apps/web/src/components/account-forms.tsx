@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { TerminalField } from "@/components/terminal-field";
 
 interface Question {
   position: number;
@@ -14,7 +15,7 @@ export function AccountForms({
   initialQuestions: Question[];
 }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <ChangePasswordForm />
       <ChangeQuestionsForm initial={initialQuestions} />
     </div>
@@ -44,7 +45,7 @@ function ChangePasswordForm() {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? "error");
       }
-      setMsg({ kind: "ok", text: "contraseña actualizada" });
+      setMsg({ kind: "ok", text: "PASSWORD ACTUALIZADA" });
       setCur("");
       setNw("");
       setConfirm("");
@@ -56,17 +57,39 @@ function ChangePasswordForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-lg border border-white/10 p-5">
-      <h2 className="text-sm font-medium">Cambiar contraseña</h2>
-      <Field label="Contraseña actual" type="password" value={cur} onChange={setCur} autoComplete="current-password" />
-      <Field label="Nueva contraseña (mín 8)" type="password" value={nw} onChange={setNw} autoComplete="new-password" />
-      <Field label="Repite nueva contraseña" type="password" value={confirm} onChange={setConfirm} autoComplete="new-password" />
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={busy}>
-          {busy ? "Guardando…" : "Actualizar contraseña"}
+    <form onSubmit={submit} className="bg-surface border border-white/10">
+      <div className="p-4 border-b border-white/10">
+        <h3 className="label-caps text-on-surface">CHANGE PASSWORD</h3>
+      </div>
+      <div className="p-5 space-y-4">
+        <TerminalField
+          label="Current password"
+          type="password"
+          value={cur}
+          onChange={setCur}
+          autoComplete="current-password"
+        />
+        <TerminalField
+          label="New password (min 8)"
+          type="password"
+          value={nw}
+          onChange={setNw}
+          autoComplete="new-password"
+        />
+        <TerminalField
+          label="Confirm new password"
+          type="password"
+          value={confirm}
+          onChange={setConfirm}
+          autoComplete="new-password"
+        />
+      </div>
+      <div className="flex items-center gap-3 p-4 border-t border-white/10">
+        <Button variant="primary" type="submit" disabled={busy}>
+          {busy ? "Saving…" : "Update password"}
         </Button>
         {msg && (
-          <span className={msg.kind === "ok" ? "text-xs text-[color:var(--accent)]" : "text-xs text-destructive"}>
+          <span className={`label-caps ${msg.kind === "ok" ? "text-primary" : "text-error"}`}>
             {msg.text}
           </span>
         )}
@@ -110,7 +133,7 @@ function ChangeQuestionsForm({ initial }: { initial: Question[] }) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? "error");
       }
-      setMsg({ kind: "ok", text: "preguntas actualizadas" });
+      setMsg({ kind: "ok", text: "PREGUNTAS ACTUALIZADAS" });
       setCurrent("");
     } catch (e) {
       setMsg({ kind: "err", text: (e as Error).message });
@@ -120,77 +143,53 @@ function ChangeQuestionsForm({ initial }: { initial: Question[] }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-lg border border-white/10 p-5">
-      <div>
-        <h2 className="text-sm font-medium">Preguntas de seguridad</h2>
-        <p className="text-xs text-[color:var(--muted)] mt-1">
+    <form onSubmit={submit} className="bg-surface border border-white/10">
+      <div className="p-4 border-b border-white/10">
+        <h3 className="label-caps text-on-surface">SECURITY QUESTIONS</h3>
+        <p className="text-[11px] text-outline mt-1">
           Reemplazas las 3 preguntas y respuestas. Requiere tu contraseña actual.
         </p>
       </div>
-      <Field
-        label="Contraseña actual"
-        type="password"
-        value={current}
-        onChange={setCurrent}
-        autoComplete="current-password"
-      />
-      {questions.map((q, i) => (
-        <div key={i} className="pt-2 border-t border-white/5 space-y-2">
-          <div className="text-xs text-[color:var(--muted)]">Pregunta {i + 1}</div>
-          <input
-            type="text"
-            value={q.question}
-            onChange={(e) => setQ(i, { question: e.target.value })}
-            placeholder="Pregunta"
-            className="w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm"
-          />
-          <input
-            type="text"
-            value={q.answer}
-            onChange={(e) => setQ(i, { answer: e.target.value })}
-            placeholder="Respuesta nueva"
-            className="w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm"
-          />
-        </div>
-      ))}
-      <div className="flex items-center gap-3 pt-2">
-        <Button type="submit" disabled={busy}>
-          {busy ? "Guardando…" : "Actualizar preguntas"}
+      <div className="p-5 space-y-4">
+        <TerminalField
+          label="Current password"
+          type="password"
+          value={current}
+          onChange={setCurrent}
+          autoComplete="current-password"
+        />
+        {questions.map((q, i) => (
+          <div key={i} className="pt-3 border-t border-white/5 space-y-2">
+            <span className="label-caps text-outline">
+              QUESTION {String(i + 1).padStart(2, "0")}
+            </span>
+            <TerminalField
+              label=""
+              type="text"
+              value={q.question}
+              onChange={(v) => setQ(i, { question: v })}
+              placeholder="Pregunta"
+            />
+            <TerminalField
+              label="Answer"
+              type="text"
+              value={q.answer}
+              onChange={(v) => setQ(i, { answer: v })}
+              placeholder="Nueva respuesta"
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-3 p-4 border-t border-white/10">
+        <Button variant="primary" type="submit" disabled={busy}>
+          {busy ? "Saving…" : "Update questions"}
         </Button>
         {msg && (
-          <span className={msg.kind === "ok" ? "text-xs text-[color:var(--accent)]" : "text-xs text-destructive"}>
+          <span className={`label-caps ${msg.kind === "ok" ? "text-primary" : "text-error"}`}>
             {msg.text}
           </span>
         )}
       </div>
     </form>
-  );
-}
-
-function Field({
-  label,
-  type,
-  value,
-  onChange,
-  autoComplete,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs text-[color:var(--muted)]">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required
-        autoComplete={autoComplete}
-        className="mt-1 w-full rounded bg-white/5 border border-white/10 px-3 py-2 text-sm focus:outline-none focus:border-[hsl(var(--sh-primary))]"
-      />
-    </label>
   );
 }

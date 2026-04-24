@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@cryptopilot/db";
-import { Badge } from "@/components/ui/badge";
 import { CancelRunButton } from "@/components/cancel-run-button";
 
 export const dynamic = "force-dynamic";
@@ -24,30 +23,30 @@ export default async function RunDetailPage({
     <main className="space-y-6">
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <div className="text-xs text-[color:var(--muted)] mb-1">
-            <Link href="/runs" className="hover:underline">
-              ← Corridas
-            </Link>
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <Link
+            href="/runs"
+            className="label-caps text-outline hover:text-primary"
+          >
+            ← BACK TO RUNS
+          </Link>
+          <h1 className="display-mono text-on-surface uppercase mt-2">
             {run.label ?? `Run ${run.id.slice(0, 8)}`}
           </h1>
-          <p className="mt-1 text-sm text-[color:var(--muted)]">
-            Inicio {run.startedAt.toLocaleString("es-CL")} · Fin programado{" "}
-            {run.endsAt.toLocaleString("es-CL")}
+          <p className="label-caps text-outline mt-1">
+            STARTED {run.startedAt.toLocaleString("es-CL")} · ENDS {run.endsAt.toLocaleString("es-CL")}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={run.status} />
+        <div className="flex items-center gap-3">
+          <StatusChip status={run.status} />
           {run.status === "running" && <CancelRunButton runId={run.id} />}
         </div>
       </header>
 
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Stat label="Equity inicio" value={`$${startEquity.toFixed(2)}`} />
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-white/10 border border-white/10">
+        <Stat label="EQUITY START" value={`$${startEquity.toFixed(2)}`} />
         <Stat
-          label="Equity fin"
-          value={endEquity != null ? `$${endEquity.toFixed(2)}` : "— en curso"}
+          label="EQUITY END"
+          value={endEquity != null ? `$${endEquity.toFixed(2)}` : "— IN PROGRESS"}
         />
         <Stat
           label="P&L"
@@ -56,19 +55,23 @@ export default async function RunDetailPage({
         />
       </section>
 
-      <section className="rounded-lg border border-white/10 p-5">
-        <h2 className="text-sm font-medium mb-3">Reporte</h2>
-        {run.reportMd ? (
-          <pre className="whitespace-pre-wrap text-xs leading-relaxed font-mono">
-            {run.reportMd}
-          </pre>
-        ) : (
-          <p className="text-sm text-[color:var(--muted)]">
-            {run.status === "running"
-              ? "La corrida aún está en curso. El reporte se genera automáticamente cuando el worker detecta que pasó la hora de fin."
-              : "Esta corrida no tiene reporte registrado."}
-          </p>
-        )}
+      <section className="bg-surface border border-white/10">
+        <div className="p-4 border-b border-white/10">
+          <h2 className="label-caps text-on-surface">REPORT</h2>
+        </div>
+        <div className="p-5">
+          {run.reportMd ? (
+            <pre className="whitespace-pre-wrap text-[12px] leading-relaxed font-mono text-on-surface">
+              {run.reportMd}
+            </pre>
+          ) : (
+            <p className="text-[13px] text-outline italic">
+              {run.status === "running"
+                ? "Run in progress — the worker generates the report automatically when the end time is reached."
+                : "No report registered for this run."}
+            </p>
+          )}
+        </div>
       </section>
     </main>
   );
@@ -85,21 +88,28 @@ function Stat({
 }) {
   const color =
     tone === "positive"
-      ? "text-[color:var(--accent)]"
+      ? "text-primary"
       : tone === "negative"
-        ? "text-[color:var(--danger)]"
-        : "";
+        ? "text-error"
+        : "text-on-surface";
   return (
-    <div className="rounded-lg border border-white/10 p-4">
-      <div className="text-xs uppercase tracking-wide text-[color:var(--muted)]">{label}</div>
-      <div className={`mt-1 text-2xl font-semibold ${color}`}>{value}</div>
+    <div className="bg-surface p-4">
+      <div className="label-caps text-on-surface-variant mb-2">{label}</div>
+      <div className={`display-mono ${color}`}>{value}</div>
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === "running") return <Badge variant="info">Running</Badge>;
-  if (status === "completed") return <Badge variant="default">Completed</Badge>;
-  if (status === "cancelled") return <Badge variant="muted">Cancelled</Badge>;
-  return <Badge variant="muted">{status}</Badge>;
+function StatusChip({ status }: { status: string }) {
+  const cls =
+    status === "running"
+      ? "text-blue-300 border-blue-400/40"
+      : status === "completed"
+        ? "text-primary border-primary/40"
+        : "text-outline border-white/20";
+  return (
+    <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] border ${cls}`}>
+      {status}
+    </span>
+  );
 }

@@ -64,32 +64,31 @@ export function WorkerControls({ killActive, killReason, paused, pausedReason }:
       <div className="flex items-center gap-2">
         <Button
           size="sm"
-          variant={paused ? "warn" : "outline"}
+          variant={paused ? "primary" : "warn"}
           onClick={doPause}
           disabled={busy !== null || killActive}
           title={killActive ? "Kill-switch activo — usa el botón rojo" : undefined}
         >
-          {busy === "pause" ? "…" : paused ? "Reanudar" : "Pausar"}
+          {busy === "pause" ? "…" : paused ? "Resume" : "Pausar"}
         </Button>
         <Button
           size="sm"
-          variant={killActive ? "default" : "destructive"}
+          variant={killActive ? "primary" : "destructive"}
           onClick={doKill}
           disabled={busy !== null}
         >
-          {busy === "kill" ? "…" : killActive ? "Reactivar" : "Kill-switch"}
+          {busy === "kill" ? "…" : killActive ? "Revive" : "Kill-Switch"}
         </Button>
       </div>
       {killActive && killReason && (
-        <p className="text-xs text-destructive max-w-[280px] text-right">Kill: {killReason}</p>
+        <p className="label-caps text-error max-w-[280px] text-right">KILL: {killReason}</p>
       )}
       {!killActive && paused && pausedReason && (
-        <p className="text-xs text-warn max-w-[280px] text-right">Pausado: {pausedReason}</p>
+        <p className="label-caps text-tertiary max-w-[280px] text-right">PAUSED: {pausedReason}</p>
       )}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="label-caps text-error">{error}</p>}
     </div>
   );
 }
 
-/** @deprecated use WorkerControls */
 export const KillSwitchButton = WorkerControls;

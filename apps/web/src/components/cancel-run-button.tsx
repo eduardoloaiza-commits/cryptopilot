@@ -22,7 +22,7 @@ export function CancelRunButton({ runId }: { runId: string }) {
 
   return (
     <Button variant="outline" size="sm" onClick={cancel} disabled={busy}>
-      {busy ? "…" : "Cancelar"}
+      {busy ? "…" : "Cancel"}
     </Button>
   );
 }

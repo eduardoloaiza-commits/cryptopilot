@@ -34,22 +34,24 @@ function flatten(
 
 export function FilterBar({ basePath, active, fields, searchField }: Props) {
   const current = flatten(active);
-  const anyActive = fields.some((f) => current[f.name]) || (searchField && current[searchField.name]);
+  const anyActive =
+    fields.some((f) => current[f.name]) ||
+    Boolean(searchField && current[searchField.name]);
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 p-3 bg-white/[0.015]">
+    <div className="flex flex-wrap items-center gap-4 bg-surface border border-white/10 p-3">
       {fields.map((f) => (
-        <div key={f.name} className="flex items-center gap-1 text-xs">
-          <span className="text-[color:var(--muted)]">{f.label}:</span>
+        <div key={f.name} className="flex items-center gap-1">
+          <span className="label-caps text-outline mr-1">{f.label}</span>
           <Link
             href={buildUrl(basePath, { ...current, [f.name]: undefined })}
             className={
               current[f.name]
-                ? "rounded px-2 py-1 border border-white/10 text-[color:var(--muted)] hover:bg-white/5"
-                : "rounded px-2 py-1 border border-[color:var(--accent)]/40 bg-[color:var(--accent)]/10 text-[color:var(--accent)]"
+                ? "px-2 py-1 border border-white/10 text-outline hover:bg-white/5 label-caps"
+                : "px-2 py-1 border border-primary/40 bg-primary/10 text-primary label-caps"
             }
           >
-            todos
+            ALL
           </Link>
           {f.options.map((opt) => (
             <Link
@@ -57,8 +59,8 @@ export function FilterBar({ basePath, active, fields, searchField }: Props) {
               href={buildUrl(basePath, { ...current, [f.name]: opt })}
               className={
                 current[f.name] === opt
-                  ? "rounded px-2 py-1 border border-[color:var(--accent)]/40 bg-[color:var(--accent)]/10 text-[color:var(--accent)]"
-                  : "rounded px-2 py-1 border border-white/10 text-[color:var(--muted)] hover:bg-white/5"
+                  ? "px-2 py-1 border border-primary/40 bg-primary/10 text-primary label-caps"
+                  : "px-2 py-1 border border-white/10 text-outline hover:bg-white/5 hover:text-on-surface label-caps"
               }
             >
               {opt}
@@ -68,7 +70,6 @@ export function FilterBar({ basePath, active, fields, searchField }: Props) {
       ))}
       {searchField && (
         <form action={basePath} className="ml-auto flex items-center gap-2">
-          {/* preserve other filters */}
           {Object.entries(current)
             .filter(([k]) => k !== searchField.name)
             .map(([k, v]) =>
@@ -79,16 +80,16 @@ export function FilterBar({ basePath, active, fields, searchField }: Props) {
             name={searchField.name}
             placeholder={searchField.placeholder ?? "Buscar…"}
             defaultValue={current[searchField.name] ?? ""}
-            className="rounded bg-white/5 border border-white/10 px-2 py-1 text-xs w-52"
+            className="bg-transparent border-0 border-b border-white/10 px-2 py-1 data-tabular text-on-surface placeholder:text-surface-bright focus:outline-none focus:border-primary/40 w-56"
           />
         </form>
       )}
       {anyActive && (
         <Link
           href={basePath}
-          className="text-xs text-[color:var(--muted)] hover:text-[color:var(--fg)] underline"
+          className="label-caps text-outline hover:text-primary"
         >
-          limpiar
+          CLEAR
         </Link>
       )}
     </div>

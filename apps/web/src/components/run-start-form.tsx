@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 const PRESETS = [
-  { label: "1 h", hours: 1 },
-  { label: "3 h", hours: 3 },
-  { label: "6 h", hours: 6 },
-  { label: "12 h", hours: 12 },
-  { label: "24 h", hours: 24 },
-  { label: "48 h", hours: 48 },
+  { label: "1H", hours: 1 },
+  { label: "3H", hours: 3 },
+  { label: "6H", hours: 6 },
+  { label: "12H", hours: 12 },
+  { label: "24H", hours: 24 },
+  { label: "48H", hours: 48 },
 ];
 
 export function RunStartForm({ disabled }: { disabled?: boolean }) {
@@ -44,14 +44,21 @@ export function RunStartForm({ disabled }: { disabled?: boolean }) {
   }
 
   return (
-    <div className="rounded-lg border border-white/10 p-4 space-y-3 bg-white/[0.015]">
+    <div className="bg-surface border border-white/10 p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="label-caps text-on-surface">NUEVA CORRIDA</h3>
+        {disabled && (
+          <span className="label-caps text-tertiary">RUN ACTIVO — ESPERA O CANCELA</span>
+        )}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-[color:var(--muted)]">Duración:</span>
+        <span className="label-caps text-outline mr-1">DURATION</span>
         {PRESETS.map((p) => (
           <Button
             key={p.hours}
             size="sm"
-            variant={hours === p.hours ? "default" : "outline"}
+            variant={hours === p.hours ? "primary" : "outline"}
             onClick={() => setHours(p.hours)}
             disabled={disabled || busy}
           >
@@ -66,25 +73,27 @@ export function RunStartForm({ disabled }: { disabled?: boolean }) {
           value={hours}
           onChange={(e) => setHours(Number(e.target.value))}
           disabled={disabled || busy}
-          className="w-20 rounded bg-white/5 border border-white/10 px-2 py-1 text-sm text-right font-mono"
+          className="w-20 bg-transparent border-0 border-b border-white/10 px-2 py-1 data-tabular text-right text-on-surface focus:outline-none focus:border-primary/40"
         />
-        <span className="text-xs text-[color:var(--muted)]">h</span>
+        <span className="label-caps text-outline">HOURS</span>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+
+      <div className="flex flex-wrap items-center gap-3">
         <input
           type="text"
-          placeholder="Etiqueta (opcional) — ej. 'Test universo dinámico'"
+          placeholder="Label (optional) — e.g. 'Dynamic universe baseline'"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           disabled={disabled || busy}
           maxLength={120}
-          className="flex-1 min-w-[240px] rounded bg-white/5 border border-white/10 px-2 py-1 text-sm"
+          className="flex-1 min-w-[240px] bg-transparent border-0 border-b border-white/10 px-2 py-2 data-tabular text-on-surface placeholder:text-surface-bright focus:outline-none focus:border-primary/40"
         />
-        <Button onClick={start} disabled={disabled || busy}>
-          {busy ? "Iniciando…" : disabled ? "Ya hay un run activo" : "Iniciar corrida"}
+        <Button variant="primary" onClick={start} disabled={disabled || busy}>
+          {busy ? "Iniciando…" : "Iniciar Run"}
         </Button>
       </div>
-      {err && <p className="text-xs text-destructive">{err}</p>}
+
+      {err && <p className="label-caps text-error">{err}</p>}
     </div>
   );
 }

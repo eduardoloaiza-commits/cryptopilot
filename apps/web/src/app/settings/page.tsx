@@ -9,8 +9,8 @@ export default async function SettingsPage() {
   if (!portfolio) {
     return (
       <main>
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="mt-4 text-[color:var(--muted)]">No hay portfolio activo.</p>
+        <h1 className="display-mono text-on-surface uppercase">Settings</h1>
+        <p className="mt-4 text-[13px] text-outline">No hay portfolio activo.</p>
       </main>
     );
   }
@@ -19,8 +19,8 @@ export default async function SettingsPage() {
   if (!g) {
     return (
       <main>
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="mt-4 text-[color:var(--muted)]">
+        <h1 className="display-mono text-on-surface uppercase">Settings</h1>
+        <p className="mt-4 text-[13px] text-outline">
           No hay guardrails aún. El worker los crea al primer arranque.
         </p>
       </main>
@@ -30,9 +30,9 @@ export default async function SettingsPage() {
   return (
     <main className="space-y-6 max-w-2xl">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings — Guardrails</h1>
-        <p className="mt-1 text-sm text-[color:var(--muted)]">
-          Límites duros validados en el MCP. Cambios toman efecto en el próximo ciclo.
+        <h1 className="display-mono text-on-surface uppercase">Guardrails</h1>
+        <p className="label-caps text-outline mt-1">
+          HARD LIMITS · MCP-ENFORCED · CAMBIOS APLICAN EN EL PRÓXIMO CICLO
         </p>
       </header>
 

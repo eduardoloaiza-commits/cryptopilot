@@ -16,11 +16,11 @@ export default async function AccountPage() {
   });
 
   return (
-    <main className="space-y-6 max-w-xl">
+    <main className="space-y-6 max-w-2xl">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Mi cuenta</h1>
-        <p className="mt-1 text-sm text-[color:var(--muted)]">
-          Sesión iniciada como <span className="text-[color:var(--fg)]">{me.email}</span>.
+        <h1 className="display-mono text-on-surface uppercase">Account</h1>
+        <p className="label-caps text-outline mt-1">
+          SESSION · <span className="text-on-surface">{me.email}</span>
         </p>
       </header>
       <AccountForms initialQuestions={questions} />
