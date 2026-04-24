@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { logger } from "./lib/logger.js";
 import { runAccountant } from "./agents/accountant.js";
 import { runSlTpSweep } from "./lib/sweep.js";
+import { finalizePendingRuns } from "./lib/evaluation-run.js";
 
 export function startScheduler() {
   const dailyCron = process.env.DAILY_REPORT_CRON ?? "59 23 * * *";
@@ -29,6 +30,12 @@ export function startScheduler() {
       }
     } catch (err) {
       logger.error({ err }, "sweep.failed");
+    }
+    try {
+      const n = await finalizePendingRuns();
+      if (n > 0) logger.info({ finalized: n }, "runs.finalized");
+    } catch (err) {
+      logger.error({ err }, "runs.finalize.failed");
     }
   });
 

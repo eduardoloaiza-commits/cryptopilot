@@ -64,6 +64,7 @@ model Portfolio {
   agentLogs        AgentLog[]
   heartbeat        WorkerHeartbeat?
   equitySnapshots  EquitySnapshot[]
+  evaluationRuns   EvaluationRun[]
 }
 
 model Trade {
@@ -167,6 +168,25 @@ model EquitySnapshot {
   openCount   Int       @default(0)
 
   @@index([portfolioId, ts])
+}
+
+model EvaluationRun {
+  id          String    @id @default(cuid())
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+  label       String?
+  startedAt   DateTime  @default(now())
+  endsAt      DateTime
+  finalizedAt DateTime?
+  status      String    @default("running")
+  startEquity Decimal   @db.Decimal(20, 8)
+  endEquity   Decimal?  @db.Decimal(20, 8)
+  reportMd    String?   @db.Text
+  metrics     Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([portfolioId, status])
+  @@index([endsAt])
 }
 
 model AgentLog {
