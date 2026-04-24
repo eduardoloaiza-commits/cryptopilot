@@ -1,4 +1,4 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,7 +33,14 @@ export type AgentPhase = "SCAN" | "DECIDE" | "EXECUTE" | "REPORT" | "SWEEP";
 export interface RunAgentOpts<T> {
   role: AgentRole;
   phase: AgentPhase;
-  systemPrompt: string;
+  /**
+   * Prompt del sistema. Pásalo como string simple si no necesitas caching,
+   * o como array de strings para habilitar Anthropic prompt caching — el
+   * `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` se añade al final automáticamente, así
+   * que todos los bloques se cachean (ideal cuando el prompt es estático
+   * entre ciclos).
+   */
+  systemPrompt: string | string[];
   userPrompt: string;
   model?: string;
   allowedTools: string[];
@@ -59,10 +66,13 @@ export async function runAgent<T>(opts: RunAgentOpts<T>): Promise<RunAgentResult
   const jsonSchema = z.toJSONSchema(opts.outputSchema, { target: "draft-7" });
 
   const started = Date.now();
+  const systemPrompt = Array.isArray(opts.systemPrompt)
+    ? [...opts.systemPrompt, SYSTEM_PROMPT_DYNAMIC_BOUNDARY]
+    : opts.systemPrompt;
   const q = query({
     prompt: opts.userPrompt,
     options: {
-      systemPrompt: opts.systemPrompt,
+      systemPrompt,
       model: opts.model ?? "claude-sonnet-4-6",
       ...(process.env.CLAUDE_CODE_EXECUTABLE
         ? { pathToClaudeCodeExecutable: process.env.CLAUDE_CODE_EXECUTABLE }

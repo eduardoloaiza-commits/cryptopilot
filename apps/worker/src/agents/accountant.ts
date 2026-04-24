@@ -111,7 +111,7 @@ async function generateDailyReportFn(): Promise<void> {
   const mdResult = await runAgent({
     role: "ACCOUNTANT",
     phase: "REPORT",
-    systemPrompt: DAILY_REPORT_PROMPT,
+    systemPrompt: [DAILY_REPORT_PROMPT],
     userPrompt: `Input:\n${JSON.stringify(summaryInput, null, 2)}\n\nGenera summaryMd.`,
     model: "claude-haiku-4-5-20251001",
     allowedTools: [],

@@ -78,7 +78,7 @@ Devuelve el array JSON de señales (puede ser [] si el régimen o los criterios 
   const result = await runAgent({
     role: "ANALYST",
     phase: "SCAN",
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt: [SYSTEM_PROMPT],
     userPrompt,
     model: process.env.MODEL_ANALYST ?? "claude-sonnet-4-6",
     allowedTools: ALLOWED_TOOLS,

@@ -75,12 +75,27 @@ export async function runRiskManager(input: RiskManagerInput): Promise<RiskVerdi
           )}\nDevuelve RiskVerdict JSON.`
         : "Fase sl-tp-sweep. Revisa posiciones abiertas y devuelve RiskVerdict (allow=true informativo).";
 
+  // pre-cycle es casi determinista (contar posiciones, chequear DD diario) —
+  // Haiku 4.5 lo resuelve bien por ~20% del costo. pre-execution valida la
+  // propuesta específica (side, R:R, SL en rango) — también razonable para
+  // Haiku. Solo sl-tp-sweep se mantiene con Sonnet como respaldo informativo.
+  const defaultModel =
+    input.phase === "sl-tp-sweep"
+      ? "claude-sonnet-4-6"
+      : "claude-haiku-4-5-20251001";
+  const modelEnv =
+    input.phase === "pre-cycle"
+      ? process.env.MODEL_RISK_PRECYCLE
+      : input.phase === "pre-execution"
+        ? process.env.MODEL_RISK_EXEC
+        : process.env.MODEL_RISK;
+
   const result = await runAgent({
     role: "RISK_MANAGER",
     phase: input.phase === "sl-tp-sweep" ? "SWEEP" : input.phase === "pre-cycle" ? "SCAN" : "DECIDE",
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt: [SYSTEM_PROMPT],
     userPrompt,
-    model: process.env.MODEL_RISK ?? "claude-sonnet-4-6",
+    model: modelEnv ?? process.env.MODEL_RISK ?? defaultModel,
     allowedTools: ALLOWED_TOOLS,
     outputSchema: RiskVerdictSchema,
     maxTurns: 15,

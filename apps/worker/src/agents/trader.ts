@@ -79,7 +79,7 @@ Evalúa, valida con guardrail_check y devuelve UNA orden o null.
   const result = await runAgent({
     role: "TRADER",
     phase: "DECIDE",
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt: [SYSTEM_PROMPT],
     userPrompt,
     model: process.env.MODEL_TRADER ?? "claude-haiku-4-5-20251001",
     allowedTools: ALLOWED_TOOLS,
@@ -152,7 +152,7 @@ ${COMMON_TONE}
   const result = await runAgent({
     role: "TRADER",
     phase: "EXECUTE",
-    systemPrompt: EXECUTE_PROMPT,
+    systemPrompt: [EXECUTE_PROMPT],
     userPrompt,
     model: process.env.MODEL_EXECUTE ?? "claude-haiku-4-5-20251001",
     allowedTools: ["place_order"],
