@@ -170,6 +170,43 @@ model EquitySnapshot {
   @@index([portfolioId, ts])
 }
 
+model User {
+  id                String              @id @default(cuid())
+  email             String              @unique
+  passwordHash      String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  sessions          Session[]
+  securityQuestions SecurityQuestion[]
+}
+
+model SecurityQuestion {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  position   Int
+  question   String
+  answerHash String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, position])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?
+  ipAddress String?
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
 model EvaluationRun {
   id          String    @id @default(cuid())
   portfolioId String
