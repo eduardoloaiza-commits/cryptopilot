@@ -1,5 +1,5 @@
 import { getDashboard } from "@/lib/queries";
-import { KillSwitchButton } from "@/components/kill-switch";
+import { WorkerControls } from "@/components/kill-switch";
 import { HeartbeatCard } from "@/components/heartbeat-card";
 
 export const dynamic = "force-dynamic";
@@ -51,9 +51,11 @@ export default async function HomePage() {
             {new Date(portfolio.createdAt).toLocaleDateString("es-CL")}
           </p>
         </div>
-        <KillSwitchButton
-          active={portfolio.guardrails?.killSwitchTriggered ?? false}
-          reason={portfolio.guardrails?.killSwitchReason ?? null}
+        <WorkerControls
+          killActive={portfolio.guardrails?.killSwitchTriggered ?? false}
+          killReason={portfolio.guardrails?.killSwitchReason ?? null}
+          paused={portfolio.guardrails?.paused ?? false}
+          pausedReason={portfolio.guardrails?.pausedReason ?? null}
         />
       </header>
 
