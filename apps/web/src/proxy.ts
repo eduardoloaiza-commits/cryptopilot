@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const REALM = "CryptoPilot";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const password = process.env.DASHBOARD_PASSWORD;
   if (!password) return NextResponse.next();
 

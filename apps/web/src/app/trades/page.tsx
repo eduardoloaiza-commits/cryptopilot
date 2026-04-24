@@ -1,20 +1,49 @@
-import { listTrades } from "@/lib/queries";
+import { listTrades, listDistinctTradeSymbols, type TradeFilters } from "@/lib/queries";
+import { FilterBar } from "@/components/filter-bar";
 
 export const dynamic = "force-dynamic";
 
-export default async function TradesPage() {
-  const trades = await listTrades(200);
+const SIDES = ["BUY", "SELL"] as const;
+const STATUSES = ["OPEN", "CLOSED", "CANCELLED"] as const;
+
+type SP = Promise<{ [k: string]: string | string[] | undefined }>;
+
+export default async function TradesPage({ searchParams }: { searchParams: SP }) {
+  const sp = await searchParams;
+  const filters: TradeFilters = {};
+  const symbol = typeof sp.symbol === "string" ? sp.symbol : undefined;
+  const side = typeof sp.side === "string" ? sp.side : undefined;
+  const status = typeof sp.status === "string" ? sp.status : undefined;
+  if (symbol) filters.symbol = symbol;
+  if (side === "BUY" || side === "SELL") filters.side = side;
+  if (status === "OPEN" || status === "CLOSED" || status === "CANCELLED") filters.status = status;
+
+  const [trades, symbols] = await Promise.all([
+    listTrades(300, filters),
+    listDistinctTradeSymbols(),
+  ]);
 
   return (
     <main className="space-y-4">
       <h1 className="text-2xl font-semibold">Trades</h1>
+
+      <FilterBar
+        basePath="/trades"
+        active={sp}
+        fields={[
+          { name: "symbol", label: "Símbolo", options: symbols },
+          { name: "side", label: "Side", options: SIDES as unknown as string[] },
+          { name: "status", label: "Status", options: STATUSES as unknown as string[] },
+        ]}
+      />
+
       <p className="text-sm text-[color:var(--muted)]">
-        Últimos {trades.length} trades del portfolio activo.
+        Mostrando {trades.length} trades.
       </p>
 
       {trades.length === 0 ? (
         <div className="rounded-lg border border-white/10 p-6 text-sm text-[color:var(--muted)]">
-          Sin trades aún.
+          Sin trades que coincidan con los filtros.
         </div>
       ) : (
         <div className="rounded-lg border border-white/10 overflow-hidden">

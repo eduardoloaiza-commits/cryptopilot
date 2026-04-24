@@ -10,12 +10,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.2.3",
     "@cryptopilot/db": "workspace:*",
     "@cryptopilot/shared": "workspace:*",
-    "@clerk/nextjs": "^7.2.3",
     "next": "^16.2.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "recharts": "^2",
     "zod": "^4.0.0"
   },
   "devDependencies": {

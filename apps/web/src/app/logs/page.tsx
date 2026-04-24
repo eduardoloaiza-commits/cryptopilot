@@ -1,10 +1,28 @@
-import { listAgentLogs } from "@/lib/queries";
+import { listAgentLogs, type LogFilters } from "@/lib/queries";
+import { FilterBar } from "@/components/filter-bar";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function LogsPage() {
-  const logs = await listAgentLogs(150);
+const ROLES = ["ORCHESTRATOR", "ANALYST", "TRADER", "RISK_MANAGER", "ACCOUNTANT", "RESEARCHER"];
+const PHASES = ["SCAN", "DECIDE", "EXECUTE", "REPORT", "SWEEP"];
+const LEVELS = ["info", "warn", "error"];
+
+type SP = Promise<{ [k: string]: string | string[] | undefined }>;
+
+export default async function LogsPage({ searchParams }: { searchParams: SP }) {
+  const sp = await searchParams;
+  const filters: LogFilters = {};
+  const role = typeof sp.role === "string" ? sp.role : undefined;
+  const phase = typeof sp.phase === "string" ? sp.phase : undefined;
+  const level = typeof sp.level === "string" ? sp.level : undefined;
+  const search = typeof sp.search === "string" ? sp.search : undefined;
+  if (role && (ROLES as string[]).includes(role)) filters.role = role as LogFilters["role"];
+  if (phase && (PHASES as string[]).includes(phase)) filters.phase = phase as LogFilters["phase"];
+  if (level && (LEVELS as string[]).includes(level)) filters.level = level as LogFilters["level"];
+  if (search && search.length >= 2) filters.search = search;
+
+  const logs = await listAgentLogs(200, filters);
 
   return (
     <main className="space-y-4">
@@ -12,20 +30,25 @@ export default async function LogsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Agent Logs</h1>
           <p className="text-sm text-[color:var(--muted)]">
-            Últimas {logs.length} invocaciones. Cada fila es una llamada al Claude Agent SDK.
+            Mostrando {logs.length} invocaciones. Cada fila es una llamada al Claude Agent SDK.
           </p>
         </div>
-        <a
-          href="/logs"
-          className="text-xs text-[color:var(--muted)] underline hover:text-[color:var(--fg)]"
-        >
-          Refresh
-        </a>
       </div>
+
+      <FilterBar
+        basePath="/logs"
+        active={sp}
+        fields={[
+          { name: "role", label: "Rol", options: ROLES },
+          { name: "phase", label: "Fase", options: PHASES },
+          { name: "level", label: "Nivel", options: LEVELS },
+        ]}
+        searchField={{ name: "search", placeholder: "buscar en razonamiento / tool…" }}
+      />
 
       {logs.length === 0 ? (
         <div className="rounded-lg border border-white/10 p-6 text-sm text-[color:var(--muted)]">
-          Sin logs aún.
+          Sin logs que coincidan.
         </div>
       ) : (
         <ul className="space-y-2">

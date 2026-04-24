@@ -1,6 +1,7 @@
 import { getDashboard } from "@/lib/queries";
 import { WorkerControls } from "@/components/kill-switch";
 import { HeartbeatCard } from "@/components/heartbeat-card";
+import { EquityChart } from "@/components/equity-chart";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,6 +33,7 @@ export default async function HomePage() {
     lastLogs,
     heartbeat,
     heartbeatHealth,
+    equitySeries,
   } = data;
   const equity = Number(portfolio.currentEquity);
   const initial = Number(portfolio.initialCapital);
@@ -80,6 +82,8 @@ export default async function HomePage() {
           hint={`máx ${portfolio.guardrails?.maxOpenPositions ?? 3}`}
         />
       </section>
+
+      <EquityChart data={equitySeries} />
 
       <section className="rounded-lg border border-white/10">
         <header className="border-b border-white/10 px-4 py-2 flex items-center justify-between">

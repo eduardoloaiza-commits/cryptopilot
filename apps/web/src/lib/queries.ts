@@ -101,21 +101,72 @@ export async function getDashboard() {
   };
 }
 
-export async function listTrades(limit = 100) {
+export interface TradeFilters {
+  symbol?: string;
+  side?: "BUY" | "SELL";
+  status?: "OPEN" | "CLOSED" | "CANCELLED";
+  since?: Date;
+}
+
+export async function listTrades(limit = 100, f: TradeFilters = {}) {
   const portfolio = await getActivePortfolio();
   if (!portfolio) return [];
   return prisma.trade.findMany({
-    where: { portfolioId: portfolio.id },
+    where: {
+      portfolioId: portfolio.id,
+      ...(f.symbol ? { symbol: f.symbol } : {}),
+      ...(f.side ? { side: f.side } : {}),
+      ...(f.status ? { status: f.status } : {}),
+      ...(f.since ? { openedAt: { gte: f.since } } : {}),
+    },
     orderBy: { openedAt: "desc" },
     take: limit,
   });
 }
 
-export async function listAgentLogs(limit = 100) {
+export async function listDistinctTradeSymbols(): Promise<string[]> {
+  const portfolio = await getActivePortfolio();
+  if (!portfolio) return [];
+  const rows = await prisma.trade.findMany({
+    where: { portfolioId: portfolio.id },
+    distinct: ["symbol"],
+    select: { symbol: true },
+    orderBy: { symbol: "asc" },
+  });
+  return rows.map((r) => r.symbol);
+}
+
+export interface LogFilters {
+  role?:
+    | "ORCHESTRATOR"
+    | "ANALYST"
+    | "TRADER"
+    | "RISK_MANAGER"
+    | "ACCOUNTANT"
+    | "RESEARCHER";
+  phase?: "SCAN" | "DECIDE" | "EXECUTE" | "REPORT" | "SWEEP";
+  level?: "info" | "warn" | "error";
+  search?: string;
+}
+
+export async function listAgentLogs(limit = 100, f: LogFilters = {}) {
   const portfolio = await getActivePortfolio();
   if (!portfolio) return [];
   return prisma.agentLog.findMany({
-    where: { portfolioId: portfolio.id },
+    where: {
+      portfolioId: portfolio.id,
+      ...(f.role ? { role: f.role } : {}),
+      ...(f.phase ? { phase: f.phase } : {}),
+      ...(f.level ? { level: f.level } : {}),
+      ...(f.search
+        ? {
+            OR: [
+              { reasoningMd: { contains: f.search, mode: "insensitive" as const } },
+              { toolName: { contains: f.search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    },
     orderBy: { ts: "desc" },
     take: limit,
   });
