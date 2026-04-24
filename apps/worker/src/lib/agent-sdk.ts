@@ -64,6 +64,9 @@ export async function runAgent<T>(opts: RunAgentOpts<T>): Promise<RunAgentResult
     options: {
       systemPrompt: opts.systemPrompt,
       model: opts.model ?? "claude-sonnet-4-6",
+      ...(process.env.CLAUDE_CODE_EXECUTABLE
+        ? { pathToClaudeCodeExecutable: process.env.CLAUDE_CODE_EXECUTABLE }
+        : {}),
       mcpServers: {
         [MCP_SERVER_NAME]: {
           type: "stdio",

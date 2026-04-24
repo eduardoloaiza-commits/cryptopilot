@@ -13,7 +13,7 @@ interface Kline {
 }
 
 async function fetchKlines(symbol: string): Promise<Kline[]> {
-  const baseUrl = process.env.BINANCE_BASE_URL ?? "https://testnet.binance.vision";
+  const baseUrl = process.env.BINANCE_DATA_URL ?? "https://data-api.binance.vision";
   const url = `${baseUrl}/api/v3/klines?symbol=${symbol}&interval=${INTERVAL}&limit=${LIMIT}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`klines ${symbol} ${res.status}`);

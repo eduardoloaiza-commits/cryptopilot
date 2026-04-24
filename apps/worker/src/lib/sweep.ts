@@ -8,7 +8,7 @@ interface TickerResp {
 }
 
 async function fetchTicker(symbol: string): Promise<number> {
-  const baseUrl = process.env.BINANCE_BASE_URL ?? "https://testnet.binance.vision";
+  const baseUrl = process.env.BINANCE_DATA_URL ?? "https://data-api.binance.vision";
   const res = await fetch(`${baseUrl}/api/v3/ticker/price?symbol=${symbol}`);
   if (!res.ok) throw new Error(`ticker ${symbol} ${res.status}`);
   const body = (await res.json()) as TickerResp;
