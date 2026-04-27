@@ -16,3 +16,26 @@ export const SignalSchema = z.object({
 
 export type Signal = z.infer<typeof SignalSchema>;
 export const SignalsArraySchema = z.array(SignalSchema);
+
+/**
+ * Output enriquecido del Analyst: además del array de señales, captura el
+ * régimen detectado (con motivo) y por qué se descartó cada candidato. Esto
+ * preserva la "caja blanca" que perdimos al pasar a OpenAI con structured
+ * output (con Claude Agent SDK teníamos el chain of thought streamed; ahora
+ * el modelo solo emite JSON, así que el JSON tiene que llevar la explicación).
+ */
+export const AnalystOutputSchema = z.object({
+  regime: z.enum(["Bullish", "Rangebound", "Bearish", "Overextended", "Unknown"]),
+  regimeReason: z.string().min(1),
+  rejected: z
+    .array(
+      z.object({
+        symbol: z.string(),
+        reason: z.string(),
+      }),
+    )
+    .optional(),
+  signals: z.array(SignalSchema),
+});
+
+export type AnalystOutput = z.infer<typeof AnalystOutputSchema>;

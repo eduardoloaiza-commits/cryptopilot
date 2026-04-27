@@ -1,4 +1,4 @@
-import { SignalsArraySchema, type Signal } from "../schemas/signal.js";
+import { AnalystOutputSchema, type Signal } from "../schemas/signal.js";
 import { MISSION_BRIEF, COMMON_TONE } from "./shared/prompts.js";
 import { logger } from "../lib/logger.js";
 import { runAgent } from "../lib/agent-sdk.js";
@@ -44,10 +44,28 @@ Herramientas MCP disponibles:
 - Cada señal: direction es LITERALMENTE "LONG" (NUNCA "SHORT").
 - suggestedSL y suggestedTP son obligatorios en cada señal.
 - El rationale DEBE empezar con: "Régimen: {tipo} (BTC {evidencia}). {n}/3 TF alineados: ..."
-- Si ninguna señal cumple threshold, retorna [] — NO fuerces una señal débil.
+- Si ninguna señal cumple threshold, signals: [] — NO fuerces una señal débil.
 
-Output: JSON array estricto matcheando el schema Signal:
-{ symbol, direction: "LONG", confidence ≥ 0.65, rationale, indicators, suggestedSL, suggestedTP, generatedAt }
+## Output JSON estricto (siempre los 4 campos, incluso si signals=[])
+
+\`\`\`
+{
+  "regime": "Bullish" | "Rangebound" | "Bearish" | "Overextended" | "Unknown",
+  "regimeReason": "Texto corto explicando BTC: RSI/EMA/contexto que clasificó el régimen. Obligatorio.",
+  "rejected": [
+    { "symbol": "XYZUSDT", "reason": "razón concreta del descarte (RSI > 80, momentum 5m débil, body < 60% ATR, etc.)" }
+  ],
+  "signals": [
+    { symbol, direction: "LONG", confidence ≥ 0.65, rationale, indicators, suggestedSL, suggestedTP, generatedAt }
+  ]
+}
+\`\`\`
+
+CRÍTICO: \`regime\` y \`regimeReason\` son OBLIGATORIOS en CADA respuesta. Si retornas
+signals=[], debes explicar EN \`regimeReason\` por qué (ej. "BTC RSI 1h 22, EMA9<EMA21,
+oversold persistente — bearish, stand aside") y/o llenar \`rejected\` con cada candidato
+descartado y su motivo. NO devuelvas signals=[] sin regimeReason poblado — eso nos
+dejaría a ciegas sobre qué pensaste.
 
 ${COMMON_TONE}
 `.trim();
@@ -94,8 +112,9 @@ ${recent.summary}
 
 ## Tarea
 Aplica el flujo obligatorio (régimen BTC → multi-TF por cada candidato → confidence ≥ 0.65).
-No analices símbolos fuera de \`candidates\`. Devuelve el array JSON de señales (puede
-ser [] si el régimen o los criterios no se cumplen).
+No analices símbolos fuera de \`candidates\`. Devuelve el JSON enriquecido con regime,
+regimeReason, rejected y signals (signals puede ser [] si el régimen o los criterios no
+se cumplen, pero regime y regimeReason siempre son obligatorios).
 `.trim();
 
   const result = await runAgent({
@@ -105,7 +124,7 @@ ser [] si el régimen o los criterios no se cumplen).
     userPrompt,
     model: process.env.MODEL_ANALYST ?? "gpt-4.1-mini",
     allowedTools: ALLOWED_TOOLS,
-    outputSchema: SignalsArraySchema,
+    outputSchema: AnalystOutputSchema,
     maxTurns: 30,
     portfolioId: portfolio?.id ?? null,
   });
@@ -115,9 +134,19 @@ ser [] si el régimen o los criterios no se cumplen).
     return [];
   }
 
+  const { regime, regimeReason, rejected, signals } = result.data;
   logger.info(
-    { count: result.data.length, costUsd: result.costUsd, ms: result.durationMs, candidates: input.candidates.length },
+    {
+      regime,
+      regimeReason: regimeReason.slice(0, 200),
+      rejectedCount: rejected?.length ?? 0,
+      rejectedSample: rejected?.slice(0, 3) ?? [],
+      signalsCount: signals.length,
+      costUsd: result.costUsd,
+      ms: result.durationMs,
+      candidates: input.candidates.length,
+    },
     "analyst.done",
   );
-  return result.data;
+  return signals;
 }
