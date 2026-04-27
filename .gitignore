@@ -12,6 +12,8 @@ build
 !.env.example
 secrets.env
 **/secrets.env
+secret.env
+**/secret.env
 
 *.log
 .DS_Store

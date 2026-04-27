@@ -59,7 +59,14 @@ export type RunAgentResult<T> =
   | { ok: true; data: T; raw: string; costUsd: number; durationMs: number }
   | { ok: false; reason: string; raw?: string; costUsd: number; durationMs: number };
 
-const openai = new OpenAI();
+// Lazy-init: el cliente se construye en la primera llamada a runAgent, no al
+// importar el módulo. Esto permite que `dotenv.config()` (en index.ts) cargue
+// el .env antes de que el SDK lea OPENAI_API_KEY del entorno.
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) _openai = new OpenAI();
+  return _openai;
+}
 
 // Precios en USD por 1M tokens (input / cached / output).
 // Fuente: https://platform.openai.com/docs/pricing — actualizar si cambia.
@@ -166,7 +173,7 @@ export async function runAgent<T>(opts: RunAgentOpts<T>): Promise<RunAgentResult
     ];
 
     for (let turn = 0; turn < maxTurns; turn++) {
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAI().chat.completions.create({
         model,
         messages,
         ...(oaiTools.length > 0
