@@ -1,4 +1,5 @@
 import { prisma } from "@cryptopilot/db";
+import { closePaperTrade } from "@cryptopilot/mcp-binance/paper-engine";
 import { logger } from "./logger.js";
 
 export interface RunMetrics {
@@ -235,6 +236,31 @@ export async function finalizePendingRuns(): Promise<number> {
 
   for (const run of pending) {
     try {
+      // Sweep a USDT: cierra TODAS las posiciones abiertas del portfolio
+      // antes de computar métricas. Idea: el equity final del run debería
+      // reflejar liquidación real, no marca-a-mercado de posiciones que se
+      // arrastran al siguiente período.
+      const openTrades = await prisma.trade.findMany({
+        where: { portfolioId: run.portfolioId, status: "OPEN" },
+      });
+      let sweptCount = 0;
+      let sweptPnl = 0;
+      for (const t of openTrades) {
+        try {
+          const res = await closePaperTrade({ tradeId: t.id, reason: "SWEEP" });
+          sweptCount += 1;
+          sweptPnl += res.pnlUsdt;
+        } catch (err) {
+          logger.error({ err, tradeId: t.id, runId: run.id }, "run.sweep.close.failed");
+        }
+      }
+      if (sweptCount > 0) {
+        logger.info(
+          { runId: run.id, sweptCount, sweptPnlUsdt: Number(sweptPnl.toFixed(4)) },
+          "run.sweep.done",
+        );
+      }
+
       const metrics = await computeRunMetrics(
         run.portfolioId,
         run.startedAt,
@@ -253,7 +279,7 @@ export async function finalizePendingRuns(): Promise<number> {
         },
       });
       logger.info(
-        { runId: run.id, pnlUsdt: metrics.pnlUsdt, trades: metrics.tradesClosed },
+        { runId: run.id, pnlUsdt: metrics.pnlUsdt, trades: metrics.tradesClosed, sweptAtEnd: sweptCount },
         "run.finalized",
       );
     } catch (err) {

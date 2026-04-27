@@ -3,9 +3,10 @@ import { logger } from "./logger.js";
 
 const INTERVAL = "5m";
 const LIMIT = 20;
-const UNIVERSE_SIZE = Number(process.env.UNIVERSE_SIZE ?? 30);
-const UNIVERSE_MIN_VOL = Number(process.env.UNIVERSE_MIN_VOLUME_USDT ?? 50_000_000);
-const TOP_K = Number(process.env.PREFILTER_TOP_K ?? 5);
+const UNIVERSE_SIZE = Number(process.env.UNIVERSE_SIZE ?? 50);
+const UNIVERSE_MIN_VOL = Number(process.env.UNIVERSE_MIN_VOLUME_USDT ?? 30_000_000);
+const TOP_K = Number(process.env.PREFILTER_TOP_K ?? 8);
+const MIN_SCORE = Number(process.env.PREFILTER_MIN_SCORE ?? 0.25);
 
 interface Kline {
   open: number;
@@ -170,10 +171,11 @@ export async function runPrefilter(): Promise<PrefilterResult> {
 
   const top = snapshots.slice(0, TOP_K);
 
-  // Umbral de "hay oportunidad" — score mínimo 0.35 evita que entremos en
-  // ciclos sin ningún símbolo interesante. Igual el analyst LLM puede
-  // devolver [] si el régimen BTC es adverso.
-  const worthRunning = top.filter((s) => s.score >= 0.35);
+  // Umbral de "hay oportunidad" — env-overridable. Score mínimo bajo permite
+  // que el analyst LLM evalúe más candidatos (él tiene la última palabra y
+  // descarta los que no clasifican). Score muy alto = mercado calmo deja al
+  // sistema sin nada que mirar.
+  const worthRunning = top.filter((s) => s.score >= MIN_SCORE);
   const candidates = worthRunning.map((s) => s.symbol);
 
   const summary = worthRunning.length
