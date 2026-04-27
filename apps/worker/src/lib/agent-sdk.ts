@@ -140,6 +140,7 @@ export async function runAgent<T>(opts: RunAgentOpts<T>): Promise<RunAgentResult
   let errorReason: string | null = null;
   let finalContent: string | null = null;
   let needsWrapping = false;
+  let rootSchemaType: string | undefined;
 
   try {
     await mcp.connect(transport);
@@ -162,6 +163,7 @@ export async function runAgent<T>(opts: RunAgentOpts<T>): Promise<RunAgentResult
     // un array u otro tipo, lo envolvemos en { result: ... } y desempacamos al
     // validar contra el Zod schema original.
     const rawSchema = z.toJSONSchema(opts.outputSchema, { target: "draft-7" }) as Record<string, unknown>;
+    rootSchemaType = typeof rawSchema.type === "string" ? rawSchema.type : undefined;
     needsWrapping = rawSchema.type !== "object";
     const wrappedSchema: Record<string, unknown> = needsWrapping
       ? {
@@ -273,10 +275,16 @@ export async function runAgent<T>(opts: RunAgentOpts<T>): Promise<RunAgentResult
   }
 
   const rawCandidate = tryParseJson(finalContent ?? "");
-  const candidate =
+  let candidate: unknown =
     needsWrapping && rawCandidate && typeof rawCandidate === "object" && "result" in rawCandidate
       ? (rawCandidate as { result: unknown }).result
       : rawCandidate;
+  // El modelo a veces emite { result: null } cuando no hay nada que reportar.
+  // Para schemas array root, normalizamos a [] para que el agente reciba el
+  // mismo "sin señales" que si hubiera devuelto un array vacío.
+  if (candidate == null && rootSchemaType === "array") {
+    candidate = [];
+  }
   const parsed = opts.outputSchema.safeParse(candidate);
   if (!parsed.success) {
     const reason = `schema.validation: ${parsed.error.message.slice(0, 200)}`;
