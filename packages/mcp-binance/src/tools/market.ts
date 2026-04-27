@@ -42,7 +42,10 @@ export const marketTools: Tool[] = [
       type: "object",
       properties: {
         symbol: { type: "string" },
-        interval: { type: "string", enum: ["1m", "5m", "15m", "1h"] },
+        interval: {
+          type: "string",
+          enum: ["1m", "5m", "15m", "1h", "4h", "1d"],
+        },
       },
       required: ["symbol", "interval"],
     },
