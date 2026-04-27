@@ -1,6 +1,7 @@
 import { getDashboard } from "@/lib/queries";
 import { WorkerControls } from "@/components/kill-switch";
 import { HeartbeatCard } from "@/components/heartbeat-card";
+import { AgentHealthCard } from "@/components/agent-health-card";
 import { EquityChart } from "@/components/equity-chart";
 import { Badge } from "@/components/ui/badge";
 
@@ -32,6 +33,7 @@ export default async function HomePage() {
     heartbeat,
     heartbeatHealth,
     equitySeries,
+    agentHealth,
   } = data;
   const equity = Number(portfolio.currentEquity);
   const initial = Number(portfolio.initialCapital);
@@ -81,6 +83,10 @@ export default async function HomePage() {
           value={`${openCount}`}
           hint={`MÁX ${portfolio.guardrails?.maxOpenPositions ?? 3} SIMULTÁNEAS`}
         />
+      </section>
+
+      <section className="mt-px">
+        <AgentHealthCard health={agentHealth} />
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-px mt-px bg-white/10 border border-white/10">

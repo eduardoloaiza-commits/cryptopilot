@@ -31,6 +31,76 @@ function startOfTodayUtc(): Date {
   return d;
 }
 
+export const AGENT_ROLES = [
+  "ORCHESTRATOR",
+  "ANALYST",
+  "TRADER",
+  "RISK_MANAGER",
+  "ACCOUNTANT",
+  "RESEARCHER",
+] as const;
+export type AgentRoleLabel = (typeof AGENT_ROLES)[number];
+
+export interface AgentHealthSummary {
+  perRole: Array<{ role: AgentRoleLabel; lastSuccessAt: Date | null }>;
+  errors1h: number;
+  errors24h: number;
+  topErrors: Array<{ reason: string; count: number }>;
+}
+
+export async function getAgentHealth(portfolioId: string): Promise<AgentHealthSummary> {
+  const now = Date.now();
+  const oneHourAgo = new Date(now - 60 * 60 * 1000);
+  const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+
+  const lastSuccessRows = await Promise.all(
+    AGENT_ROLES.map((role) =>
+      prisma.agentLog.findFirst({
+        where: { portfolioId, role, level: "info" },
+        orderBy: { ts: "desc" },
+        select: { ts: true },
+      }),
+    ),
+  );
+
+  const [errors1h, errors24h, recentErrors] = await Promise.all([
+    prisma.agentLog.count({
+      where: { portfolioId, level: "error", ts: { gte: oneHourAgo } },
+    }),
+    prisma.agentLog.count({
+      where: { portfolioId, level: "error", ts: { gte: oneDayAgo } },
+    }),
+    prisma.agentLog.findMany({
+      where: { portfolioId, level: "error", ts: { gte: oneDayAgo } },
+      select: { output: true },
+      orderBy: { ts: "desc" },
+      take: 200,
+    }),
+  ]);
+
+  const reasonCounts = new Map<string, number>();
+  for (const e of recentErrors) {
+    const out = e.output as Record<string, unknown> | null;
+    const raw = (out?.errorReason as string | undefined) ?? "unknown";
+    const reason = raw.length > 100 ? `${raw.slice(0, 97)}…` : raw;
+    reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + 1);
+  }
+  const topErrors = Array.from(reasonCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([reason, count]) => ({ reason, count }));
+
+  return {
+    perRole: AGENT_ROLES.map((role, i) => ({
+      role,
+      lastSuccessAt: lastSuccessRows[i]?.ts ?? null,
+    })),
+    errors1h,
+    errors24h,
+    topErrors,
+  };
+}
+
 export async function getDashboard() {
   const portfolio = await getActivePortfolio();
   if (!portfolio) return null;
@@ -39,7 +109,7 @@ export async function getDashboard() {
   const tomorrow = new Date(today);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
 
-  const [openTrades, closedToday, pnlAgg, feesAgg, openCount, lastLogs, heartbeat, equitySeries] = await Promise.all([
+  const [openTrades, closedToday, pnlAgg, feesAgg, openCount, lastLogs, heartbeat, equitySeries, agentHealth] = await Promise.all([
     prisma.trade.findMany({
       where: { portfolioId: portfolio.id, status: "OPEN" },
       orderBy: { openedAt: "desc" },
@@ -81,6 +151,7 @@ export async function getDashboard() {
       select: { ts: true, equity: true, openCount: true },
       take: 2000,
     }),
+    getAgentHealth(portfolio.id),
   ]);
 
   return {
@@ -98,6 +169,7 @@ export async function getDashboard() {
       equity: Number(s.equity),
       openCount: s.openCount,
     })),
+    agentHealth,
   };
 }
 
