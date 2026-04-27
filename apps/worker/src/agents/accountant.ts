@@ -113,7 +113,7 @@ async function generateDailyReportFn(): Promise<void> {
     phase: "REPORT",
     systemPrompt: [DAILY_REPORT_PROMPT],
     userPrompt: `Input:\n${JSON.stringify(summaryInput, null, 2)}\n\nGenera summaryMd.`,
-    model: "claude-haiku-4-5-20251001",
+    model: process.env.MODEL_ACCOUNTANT ?? "gpt-4.1-nano",
     allowedTools: [],
     outputSchema: ReportSchema,
     maxTurns: 3,

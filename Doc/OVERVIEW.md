@@ -272,7 +272,7 @@ npx @modelcontextprotocol/inspector node packages/mcp-binance/dist/server.js
 cd CryptoPilot
 pnpm install
 cp .env.example .env
-# completar: ANTHROPIC_API_KEY, BINANCE_API_KEY, BINANCE_SECRET, DATABASE_URL, Clerk keys
+# completar: OPENAI_API_KEY, BINANCE_API_KEY, BINANCE_SECRET, DATABASE_URL, Clerk keys
 ```
 
 ### Base de datos
@@ -392,7 +392,8 @@ Checklist antes de LIVE:
 
 ## 15. Referencias
 
-- Claude Agent SDK: https://docs.claude.com/en/api/agent-sdk
+- OpenAI Chat Completions / function calling: https://platform.openai.com/docs/guides/function-calling
+- OpenAI structured outputs: https://platform.openai.com/docs/guides/structured-outputs
 - MCP: https://modelcontextprotocol.io
 - Binance Spot Testnet: https://testnet.binance.vision
 - `@binance/connector-typescript`: https://github.com/binance/binance-connector-typescript

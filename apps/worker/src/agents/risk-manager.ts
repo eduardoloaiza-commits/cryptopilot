@@ -76,13 +76,11 @@ export async function runRiskManager(input: RiskManagerInput): Promise<RiskVerdi
         : "Fase sl-tp-sweep. Revisa posiciones abiertas y devuelve RiskVerdict (allow=true informativo).";
 
   // pre-cycle es casi determinista (contar posiciones, chequear DD diario) —
-  // Haiku 4.5 lo resuelve bien por ~20% del costo. pre-execution valida la
-  // propuesta específica (side, R:R, SL en rango) — también razonable para
-  // Haiku. Solo sl-tp-sweep se mantiene con Sonnet como respaldo informativo.
+  // gpt-4.1-nano lo resuelve bien por ~20% del costo de mini. pre-execution
+  // valida la propuesta específica (side, R:R, SL en rango) — también razonable
+  // para nano. sl-tp-sweep se mantiene con mini como respaldo informativo.
   const defaultModel =
-    input.phase === "sl-tp-sweep"
-      ? "claude-sonnet-4-6"
-      : "claude-haiku-4-5-20251001";
+    input.phase === "sl-tp-sweep" ? "gpt-4.1-mini" : "gpt-4.1-nano";
   const modelEnv =
     input.phase === "pre-cycle"
       ? process.env.MODEL_RISK_PRECYCLE

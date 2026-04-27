@@ -51,7 +51,7 @@ La IA **no puede saltarse** estos límites — se validan en `packages/mcp-binan
 
 ```bash
 pnpm install
-cp .env.example .env     # completar keys (anthropic, binance testnet, db, clerk)
+cp .env.example .env     # completar keys (openai, binance testnet, db, clerk)
 
 # DB
 pnpm --filter @cryptopilot/db prisma generate

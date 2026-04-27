@@ -103,7 +103,7 @@ ser [] si el régimen o los criterios no se cumplen).
     phase: "SCAN",
     systemPrompt: [SYSTEM_PROMPT],
     userPrompt,
-    model: process.env.MODEL_ANALYST ?? "claude-sonnet-4-6",
+    model: process.env.MODEL_ANALYST ?? "gpt-4.1-mini",
     allowedTools: ALLOWED_TOOLS,
     outputSchema: SignalsArraySchema,
     maxTurns: 30,
