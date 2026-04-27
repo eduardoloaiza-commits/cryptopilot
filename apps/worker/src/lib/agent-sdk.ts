@@ -139,6 +139,7 @@ export async function runAgent<T>(opts: RunAgentOpts<T>): Promise<RunAgentResult
   let totalCostUsd = 0;
   let errorReason: string | null = null;
   let finalContent: string | null = null;
+  let needsWrapping = false;
 
   try {
     await mcp.connect(transport);
@@ -157,13 +158,25 @@ export async function runAgent<T>(opts: RunAgentOpts<T>): Promise<RunAgentResult
       },
     }));
 
-    const jsonSchema = z.toJSONSchema(opts.outputSchema, { target: "draft-7" });
+    // OpenAI requiere que el schema top-level sea object. Si el agente devuelve
+    // un array u otro tipo, lo envolvemos en { result: ... } y desempacamos al
+    // validar contra el Zod schema original.
+    const rawSchema = z.toJSONSchema(opts.outputSchema, { target: "draft-7" }) as Record<string, unknown>;
+    needsWrapping = rawSchema.type !== "object";
+    const wrappedSchema: Record<string, unknown> = needsWrapping
+      ? {
+          type: "object",
+          properties: { result: rawSchema },
+          required: ["result"],
+          additionalProperties: false,
+        }
+      : rawSchema;
     const responseFormat = {
       type: "json_schema" as const,
       json_schema: {
         name: "agent_output",
         strict: false,
-        schema: jsonSchema as Record<string, unknown>,
+        schema: wrappedSchema,
       },
     };
 
@@ -259,7 +272,11 @@ export async function runAgent<T>(opts: RunAgentOpts<T>): Promise<RunAgentResult
     };
   }
 
-  const candidate = tryParseJson(finalContent ?? "");
+  const rawCandidate = tryParseJson(finalContent ?? "");
+  const candidate =
+    needsWrapping && rawCandidate && typeof rawCandidate === "object" && "result" in rawCandidate
+      ? (rawCandidate as { result: unknown }).result
+      : rawCandidate;
   const parsed = opts.outputSchema.safeParse(candidate);
   if (!parsed.success) {
     const reason = `schema.validation: ${parsed.error.message.slice(0, 200)}`;
