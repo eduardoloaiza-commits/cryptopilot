@@ -14,9 +14,20 @@ export function getBinanceClient(): Spot {
   if (cached) return cached;
 
   const mode = resolveMode();
-  const baseURL =
-    process.env.BINANCE_BASE_URL ??
-    (mode === "LIVE" ? "https://api.binance.com" : "https://testnet.binance.vision");
+  // En PAPER las órdenes se simulan localmente (paper engine) — solo necesitamos
+  // datos de mercado read-only. data-api.binance.vision es el espejo público de
+  // mainnet con TODO el universo de símbolos. testnet tiene un subset limitado
+  // (no incluye listings nuevos como CHIPUSDT), así que en PAPER esos símbolos
+  // se nos rompían cada ciclo aunque el prefilter los considerara.
+  // TESTNET → testnet real (para probar el flujo de órdenes signed con keys).
+  // LIVE → producción.
+  const defaultUrl =
+    mode === "LIVE"
+      ? "https://api.binance.com"
+      : mode === "TESTNET"
+        ? "https://testnet.binance.vision"
+        : "https://data-api.binance.vision";
+  const baseURL = process.env.BINANCE_BASE_URL ?? defaultUrl;
 
   cached = new Spot(
     process.env.BINANCE_API_KEY ?? "",
