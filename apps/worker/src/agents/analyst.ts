@@ -5,6 +5,7 @@ import { runAgent } from "../lib/agent-sdk.js";
 import { getActivePortfolio } from "../lib/portfolio.js";
 import { getRecentPerformance } from "../lib/recent-performance.js";
 import type { SymbolSnapshot } from "../lib/prefilter.js";
+import { getUniverse } from "@cryptopilot/shared";
 
 const SYSTEM_PROMPT = `
 ${MISSION_BRIEF}
@@ -25,26 +26,57 @@ Herramientas MCP disponibles:
 
 1. Régimen: compute_indicators("BTCUSDT", "1h") y compute_indicators("BTCUSDT", "4h").
    Clasifica en Bullish / Rangebound / Bearish / Overextended (ver skill market-regime).
-2. Si Bearish u Overextended → retorna [] INMEDIATAMENTE. Stand aside. No explores los
-   candidatos.
-3. Si Bullish o Rangebound, SOLO para los símbolos del userPrompt "candidates" (top-K
-   del prefilter — no escanees otros pares):
+2. Si **Overextended** → retorna signals=[] INMEDIATAMENTE. BTC sobreextendida = corrección
+   probable, no operar. (Bearish ya NO es stand-aside automático — ver paso 4.)
+3. Para los símbolos en \`candidates\` (top-K del prefilter — no escanees otros pares):
    - compute_indicators(symbol, "1h") — contexto
    - compute_indicators(symbol, "15m") — momentum
    - compute_indicators(symbol, "5m") — timing
+   - get_klines(symbol, "4h", limit=20) — backdrop 4h para Horizon Coherence (paso 5)
    - get_ticker(symbol)
-4. Aplica criterios de descarte (technical-analysis). Cualquier descarte → fuera.
-5. Calcula confidence según la fórmula de la skill. Solo emite si confidence ≥ 0.65.
-6. Para las señales que quedan, calcula suggestedSL = entryPrice − 1.5×ATR5m,
-   suggestedTP = entryPrice + 3.0×ATR5m. Distancia SL ∈ [0.3%, 2%] del precio.
-7. Máximo 3 señales ranked por confidence desc.
+4. **Filtro Relative-Strength (solo régimen Bearish)** — descarta inmediatamente cualquier
+   candidato que NO cumpla TODAS:
+     - priceChange24h del candidato > 0% (no cae en absoluto)
+     - priceChange24h(candidato) − priceChange24h(BTC) ≥ +5% (decoupled, outperformeando)
+     - volZ del prefilter > 1.0 (volumen confirma narrativa, no es flush)
+     - RSI 1h fuera de [70, 85] (no entrar en overbought local extremo)
+   En Rangebound y Bullish, NO aplica este filtro — todos los candidatos siguen al paso 5.
+5. **Horizon Coherence Check (HC) — OBLIGATORIO antes de emitir CUALQUIER señal**.
+   Validá las 4 condiciones; cualquiera que falle → descartá el símbolo con razón explícita.
+     a) **Last 4h direction**: con get_klines 4h (~5 candles cubren 20h, mirá las últimas 1-2),
+        el cierre de hace ~4h (close del kline 4h previo) DEBE ser ≤ entryPrice actual O la
+        vela 4h actual tiene close > open (martillo o cuerpo verde). Caída neta de ≥1%
+        sobre las últimas 4h SIN reversión visible en 5m → INCONGRUENTE, descartá.
+     b) **Projection room**: distancia desde entryPrice hasta el techo más cercano (4h high
+        de las últimas 12 candles, o BB upper 1h, lo que esté más cerca) DEBE ser ≥
+        suggestedTP − entryPrice. Si el TP cae más allá del techo natural, no hay espacio.
+     c) **Volume confirm**: el volumen del último kline 5m DEBE ser ≥ 1.0× la media de los
+        últimos 12 klines 5m. Volumen débil = falta de convicción, INCONGRUENTE.
+     d) **No-conflict**: NINGUNO de estos puede ser cierto:
+        - 4h RSI cruzando hacia abajo desde > 70 en la última vela
+        - 1h MACD recién negativo (signal cross dentro de las últimas 3 velas) — si computás
+        - 15m EMA9 < EMA21 al mismo tiempo que 5m está bajando (downtrend confluyente)
+6. Calculá confidence según skill. Threshold dinámico por régimen:
+     - Bullish: confidence ≥ 0.65
+     - Rangebound: confidence ≥ 0.70
+     - Bearish: confidence ≥ 0.75 (filtro RS + HC + más alto)
+7. Para las señales que sobreviven HC + threshold, calculá:
+     - suggestedSL = entryPrice − 1.5×ATR5m (distancia ∈ [0.3%, 2%])
+     - suggestedTP = entryPrice + 3.0×ATR5m
+   Y aplicá size cap por régimen (informativo en rationale, el RiskManager lo enforza):
+     - Bullish: 100% de maxPerTradePct
+     - Rangebound: 80%
+     - Bearish: 50%
+8. Máximo 3 señales ranked por confidence desc.
 
 ## Reglas duras del output
 
 - Cada señal: direction es LITERALMENTE "LONG" (NUNCA "SHORT").
 - suggestedSL y suggestedTP son obligatorios en cada señal.
-- El rationale DEBE empezar con: "Régimen: {tipo} (BTC {evidencia}). {n}/3 TF alineados: ..."
-- Si ninguna señal cumple threshold, signals: [] — NO fuerces una señal débil.
+- El rationale DEBE empezar con: "Régimen: {tipo} (BTC {evidencia}). HC: a✓ b✓ c✓ d✓.
+  {n}/3 TF alineados: ..." (incluí explícitamente cómo pasaste cada subcheck HC).
+- Si ninguna señal pasa HC + threshold, signals: [] — NO fuerces. La doctrina dice:
+  perder oportunidades es BARATO, perder capital es CARO.
 
 ## Output JSON estricto (siempre los 4 campos, incluso si signals=[])
 
@@ -93,11 +125,27 @@ export async function runAnalyst(input: AnalystInput): Promise<Signal[]> {
     )
     .join("\n");
 
+  // BTC priceChange24h — necesario para el filtro Relative-Strength en régimen Bearish.
+  // El universo está cacheado en memoria, así que esta llamada es barata.
+  let btcChange24h: number | null = null;
+  try {
+    const universe = await getUniverse();
+    const btc = universe.find((u) => u.symbol === "BTCUSDT");
+    btcChange24h = btc?.priceChangePct ?? null;
+  } catch (err) {
+    logger.debug({ err }, "analyst.btc-context.failed");
+  }
+
   const userPrompt = `
 ## candidates (top-K del prefilter TS, ordenados por score)
 ${input.candidates.join(", ")}
 
 ${snapshotLines ? `## prefilter snapshots\n${snapshotLines}\n` : ""}
+
+## BTC contexto (anchor del régimen + base del filtro Relative-Strength)
+- BTCUSDT priceChange24h: ${btcChange24h != null ? btcChange24h.toFixed(2) + "%" : "n/a"}
+- En régimen Bearish, un candidato pasa el filtro RS solo si su chg24h supera al de BTC en ≥ 5pp.
+
 
 ## recentPerformance (histórico reciente del portfolio)
 ${recent.summary}
