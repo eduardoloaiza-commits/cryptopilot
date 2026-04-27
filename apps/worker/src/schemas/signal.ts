@@ -5,7 +5,15 @@ export const SignalSchema = z.object({
   direction: z.literal("LONG"),
   confidence: z.number().min(0).max(1),
   rationale: z.string(),
-  indicators: z.record(z.string(), z.number()).optional(),
+  // El modelo puede emitir indicators flat ({rsi: 60}) o nested por timeframe
+  // ({"1h": {rsi: 60, ema: ...}}). Aceptamos ambas porque es metadata para
+  // explicabilidad — nadie consume esto programáticamente.
+  indicators: z
+    .record(
+      z.string(),
+      z.union([z.number(), z.record(z.string(), z.number())]),
+    )
+    .optional(),
   suggestedSL: z.number().positive().optional(),
   suggestedTP: z.number().positive().optional(),
   generatedAt: z.iso.datetime(),
