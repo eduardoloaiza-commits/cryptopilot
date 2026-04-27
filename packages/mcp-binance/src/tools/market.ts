@@ -1,5 +1,5 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { getBinanceClient } from "../lib/binance-client.js";
+import { getBinanceDataClient } from "../lib/binance-client.js";
 import { assertWhitelisted } from "../lib/whitelist.js";
 import { analyzeVolatility, computeIndicators, parseKlines } from "../lib/indicators.js";
 
@@ -55,7 +55,7 @@ export const marketTools: Tool[] = [
 export async function handleMarketTool(name: string, args: Record<string, unknown>) {
   const symbol = String(args.symbol);
   assertWhitelisted(symbol);
-  const client = getBinanceClient();
+  const client = getBinanceDataClient();
 
   switch (name) {
     case "get_ticker": {
